@@ -1,0 +1,35 @@
+dist: xenial
+sudo: false
+language: python
+
+python:
+#  - "3.5"
+  - "3.6"
+  - "3.7"
+
+env:
+  - SKIP_IPV6_TESTS=true
+
+before_install:
+  - chmod +x $TRAVIS_BUILD_DIR/tests/3proxy/bin/linux/3proxy
+
+install:
+  - pip install -r requirements-dev.txt
+  - pip install -e .
+
+script:
+  - flake8 python_socks tests
+  - pytest --cov=./python_socks tests/ -s
+#  - pytest --cov=./python_socks tests/ --cov-report term-missing -s
+
+after_success:
+  - coveralls
+
+#cache:
+#  directories:
+#    - $HOME/.cache/pip
+
+cache: false
+
+notifications:
+  email: false
