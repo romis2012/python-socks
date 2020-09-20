@@ -70,18 +70,18 @@ proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
 # so we can pass it to asyncio.open_connection(...)
 sock = await proxy.connect(dest_host='check-host.net', dest_port=443)
 
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
-
 reader, writer = await asyncio.open_connection(
     host=None,
     port=None,
     sock=sock,
     ssl=ssl.create_default_context(),
     server_hostname='check-host.net',
+)
+
+request = (
+    b'GET /ip HTTP/1.1\r\n'
+    b'Host: check-host.net\r\n'
+    b'Connection: close\r\n\r\n'
 )
 
 writer.write(request)
@@ -101,12 +101,6 @@ proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
 # so we can pass it to trio.SocketStream
 sock = await proxy.connect(dest_host='check-host.net', dest_port=443)
 
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
-
 stream = trio.SocketStream(sock)
 
 stream = trio.SSLStream(
@@ -114,6 +108,12 @@ stream = trio.SSLStream(
     server_hostname='check-host.net'
 )
 await stream.do_handshake()
+
+request = (
+    b'GET /ip HTTP/1.1\r\n'
+    b'Host: check-host.net\r\n'
+    b'Connection: close\r\n\r\n'
+)
 
 await stream.send_all(request)
 response = await stream.receive_some(4096)
