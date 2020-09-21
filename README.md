@@ -124,7 +124,7 @@ print(response)
 
 ## More complex example
 
-####A urllib3 PoolManager that routes connections via the proxy
+#### A urllib3 PoolManager that routes connections via the proxy
 
 ```python
 from urllib3 import PoolManager, HTTPConnectionPool, HTTPSConnectionPool
