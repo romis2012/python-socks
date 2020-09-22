@@ -51,7 +51,6 @@ async def make_request(proxy: AsyncProxy,
 
     # noinspection PyTypeChecker
     reader, writer = await asyncio.open_connection(
-        loop=loop,
         host=None,
         port=None,
         sock=sock,
