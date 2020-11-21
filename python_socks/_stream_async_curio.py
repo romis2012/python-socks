@@ -31,18 +31,6 @@ class SocketStream(AsyncSocketStream):
         if self._socket is not None:
             await self._socket.close()
 
-    async def write(self, request):
-        data = bytearray()
-        for item in request:
-            if isinstance(item, int):
-                data.append(item)
-            elif isinstance(item, (bytearray, bytes)):
-                data += item
-            else:
-                raise ValueError('Unsupported '  # pragma: no cover
-                                 'request type')
-        await self.write_all(data)
-
     async def write_all(self, data):
         await self._socket.sendall(data)
 

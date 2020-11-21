@@ -30,18 +30,6 @@ class SocketStream(AsyncSocketStream):
             self._socket.close()
             await trio.lowlevel.checkpoint()
 
-    async def write(self, request):
-        data = bytearray()
-        for item in request:
-            if isinstance(item, int):
-                data.append(item)
-            elif isinstance(item, (bytearray, bytes)):
-                data += item
-            else:
-                raise ValueError('Unsupported '  # pragma: no cover
-                                 'request type')
-        await self.write_all(data)
-
     async def write_all(self, data):
         total_sent = 0
         while total_sent < len(data):

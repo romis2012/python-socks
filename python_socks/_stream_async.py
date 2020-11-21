@@ -11,9 +11,6 @@ class AsyncSocketStream:
     async def close(self):
         raise NotImplementedError()  # pragma: no cover
 
-    async def write(self, request):
-        raise NotImplementedError()  # pragma: no cover
-
     async def write_all(self, data):
         raise NotImplementedError()  # pragma: no cover
 

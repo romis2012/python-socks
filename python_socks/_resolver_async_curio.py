@@ -12,7 +12,7 @@ class Resolver(AsyncResolver):
                 host=host, port=port,
                 family=family, type=socket.SOCK_STREAM
             )
-        except socket.gaierror:
+        except socket.gaierror:  # pragma: no cover
             infos = None
 
         if not infos:

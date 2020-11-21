@@ -32,18 +32,6 @@ class SyncSocketStream:
     def close(self):
         self._socket.close()
 
-    def write(self, request):
-        data = bytearray()
-        for item in request:
-            if isinstance(item, int):
-                data.append(item)
-            elif isinstance(item, (bytearray, bytes)):
-                data += item
-            else:
-                raise ValueError('Unsupported '  # pragma: no cover
-                                 'request type')
-        self._socket.sendall(data)
-
     def write_all(self, data):
         self._socket.sendall(data)
 

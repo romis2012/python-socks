@@ -35,18 +35,6 @@ class SocketStream(AsyncSocketStream):
     async def close(self):
         self._socket.close()
 
-    async def write(self, request):
-        data = bytearray()
-        for item in request:
-            if isinstance(item, int):
-                data.append(item)
-            elif isinstance(item, (bytearray, bytes)):
-                data += item
-            else:
-                raise ValueError('Unsupported '  # pragma: no cover
-                                 'request type')
-        await self._loop.sock_sendall(self._socket, data)
-
     async def write_all(self, data):
         await self._loop.sock_sendall(self._socket, data)
 
