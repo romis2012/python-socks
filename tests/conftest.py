@@ -43,9 +43,11 @@ SOCKS5_IPV4_URL_WO_AUTH = 'socks5://{host}:{port}'.format(
     port=SOCKS5_IPV4_PORT_WO_AUTH
 )
 
-SOCKS4_URL = 'socks4://{host}:{port}'.format(
+SOCKS4_URL = 'socks4://{login}:{password}@{host}:{port}'.format(
     host=SOCKS4_HOST,
     port=SOCKS4_PORT,
+    login=LOGIN,
+    password='',
 )
 
 HTTP_PROXY_URL = 'http://{login}:{password}@{host}:{port}'.format(

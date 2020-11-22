@@ -18,7 +18,7 @@ from python_socks.sync import ProxyChain
 from tests.conftest import (
     SOCKS5_IPV4_HOST, SOCKS5_IPV4_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
     SOCKS5_IPV4_URL, SOCKS5_IPV4_URL_WO_AUTH, SOCKS5_IPV6_URL, SOCKS4_URL,
-    HTTP_PROXY_URL
+    HTTP_PROXY_URL, HTTP_PROXY_HOST, HTTP_PROXY_PORT
 )
 
 # TEST_URL = 'https://httpbin.org/ip'
@@ -145,6 +145,18 @@ def test_http_proxy():
     proxy = Proxy.from_url(HTTP_PROXY_URL)
     status_code = make_request(proxy=proxy, url=TEST_URL)
     assert status_code == 200
+
+
+def test_http_proxy_with_invalid_credentials():
+    proxy = Proxy.create(
+        proxy_type=ProxyType.HTTP,
+        host=HTTP_PROXY_HOST,
+        port=HTTP_PROXY_PORT,
+        username=LOGIN,
+        password=PASSWORD + 'aaa',
+    )
+    with pytest.raises(ProxyError):
+        make_request(proxy=proxy, url=TEST_URL)
 
 
 def test_proxy_chain():
