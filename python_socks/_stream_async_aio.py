@@ -7,7 +7,7 @@ from ._helpers import is_ipv4_address, is_ipv6_address
 from ._errors import ProxyError
 
 
-class SocketStream(AsyncSocketStream):
+class AsyncioSocketStream(AsyncSocketStream):
     _loop: asyncio.AbstractEventLoop = None
     _socket = None
 

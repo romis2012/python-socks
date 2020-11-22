@@ -1,77 +1,28 @@
-import sys
 import asyncio
+import sys
+
 import async_timeout
 
-from ._types import ProxyType
 from ._errors import ProxyConnectionError, ProxyTimeoutError
-from ._helpers import parse_proxy_url
-
-from ._proxy_async import AsyncProxy
-from ._stream_async_aio import SocketStream
-from ._proto_socks5_async import Socks5Proto
-from ._proto_http_async import HttpProto
-from ._proto_socks4_async import Socks4Proto
+from ._proxy_async import (
+    AsyncProxy,
+    Socks4ProxyNegotiator,
+    Socks5ProxyNegotiator,
+    HttpProxyNegotiator
+)
+from ._proxy_factory import ProxyFactory
+from ._types import ProxyType
+from ._stream_async_aio import AsyncioSocketStream
 
 DEFAULT_TIMEOUT = 60
 
 
-class Proxy:
-    @classmethod
-    def create(cls, proxy_type: ProxyType, host: str, port: int,
-               username: str = None, password: str = None,
-               rdns: bool = None,
-               loop: asyncio.AbstractEventLoop = None) -> AsyncProxy:
+class AsyncioProxyConnection(AsyncProxy):
+    def __init__(self, proxy_host, proxy_port,
+                 loop: asyncio.AbstractEventLoop = None):
 
         if loop is None:
             loop = asyncio.get_event_loop()
-
-        if proxy_type == ProxyType.SOCKS4:
-            return Socks4Proxy(
-                loop=loop,
-                proxy_host=host,
-                proxy_port=port,
-                user_id=username,
-                rdns=rdns
-            )
-
-        if proxy_type == ProxyType.SOCKS5:
-            return Socks5Proxy(
-                loop=loop,
-                proxy_host=host,
-                proxy_port=port,
-                username=username,
-                password=password,
-                rdns=rdns
-            )
-
-        if proxy_type == ProxyType.HTTP:
-            return HttpProxy(
-                loop=loop,
-                proxy_host=host,
-                proxy_port=port,
-                username=username,
-                password=password
-            )
-
-        raise ValueError('Invalid proxy type: %s'  # pragma: no cover
-                         % proxy_type)
-
-    @classmethod
-    def from_url(cls, url: str, **kwargs) -> AsyncProxy:
-        proxy_type, host, port, username, password = parse_proxy_url(url)
-        return cls.create(
-            proxy_type=proxy_type,
-            host=host,
-            port=port,
-            username=username,
-            password=password,
-            **kwargs
-        )
-
-
-class BaseProxy(AsyncProxy):
-    def __init__(self, loop: asyncio.AbstractEventLoop,
-                 proxy_host, proxy_port):
 
         self._loop = loop
 
@@ -82,7 +33,7 @@ class BaseProxy(AsyncProxy):
         self._dest_port = None
         self._timeout = None
 
-        self._stream = SocketStream(loop=loop)
+        self._stream = AsyncioSocketStream(loop=loop)
 
     async def connect(self, dest_host, dest_port, timeout=None, _socket=None):
         if timeout is None:
@@ -120,7 +71,7 @@ class BaseProxy(AsyncProxy):
                 raise
 
             try:
-                await self._negotiate()
+                await self.negotiate()
             except asyncio.CancelledError:  # pragma: no cover
                 # https://bugs.python.org/issue30064
                 # https://bugs.python.org/issue34795
@@ -150,11 +101,7 @@ class BaseProxy(AsyncProxy):
                 or is_proactor_event_loop()
                 or is_uvloop_event_loop())
 
-    async def _negotiate(self):
-        proto = self._create_proto()
-        await proto.negotiate()
-
-    def _create_proto(self):
+    async def negotiate(self):
         raise NotImplementedError()  # pragma: no cover
 
     @property
@@ -166,69 +113,40 @@ class BaseProxy(AsyncProxy):
         return self._proxy_port
 
 
-class Socks5Proxy(BaseProxy):
-    def __init__(self, loop: asyncio.AbstractEventLoop,
-                 proxy_host, proxy_port,
-                 username=None, password=None, rdns=None):
-        super().__init__(
-            loop=loop,
-            proxy_host=proxy_host,
-            proxy_port=proxy_port
-        )
+class Socks5Proxy(Socks5ProxyNegotiator, AsyncioProxyConnection):
+    def __init__(self, proxy_host, proxy_port,
+                 username=None, password=None, rdns=None,
+                 loop: asyncio.AbstractEventLoop = None):
+        super().__init__(proxy_host=proxy_host, proxy_port=proxy_port,
+                         loop=loop)
         self._username = username
         self._password = password
         self._rdns = rdns
 
-    def _create_proto(self):
-        return Socks5Proto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
-            username=self._username,
-            password=self._password,
-            rdns=self._rdns
-        )
 
-
-class Socks4Proxy(BaseProxy):
-    def __init__(self, loop: asyncio.AbstractEventLoop,
-                 proxy_host, proxy_port,
-                 user_id=None, rdns=None):
-        super().__init__(
-            loop=loop,
-            proxy_host=proxy_host,
-            proxy_port=proxy_port
-        )
+class Socks4Proxy(Socks4ProxyNegotiator, AsyncioProxyConnection):
+    def __init__(self, proxy_host, proxy_port,
+                 user_id=None, rdns=None,
+                 loop: asyncio.AbstractEventLoop = None):
+        super().__init__(proxy_host=proxy_host, proxy_port=proxy_port,
+                         loop=loop)
         self._user_id = user_id
         self._rdns = rdns
 
-    def _create_proto(self):
-        return Socks4Proto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
-            user_id=self._user_id,
-            rdns=self._rdns
-        )
 
-
-class HttpProxy(BaseProxy):
-    def __init__(self, loop: asyncio.AbstractEventLoop,
-                 proxy_host, proxy_port,
-                 username=None, password=None):
-        super().__init__(
-            loop=loop,
-            proxy_host=proxy_host,
-            proxy_port=proxy_port
-        )
+class HttpProxy(HttpProxyNegotiator, AsyncioProxyConnection):
+    def __init__(self, proxy_host, proxy_port,
+                 username=None, password=None,
+                 loop: asyncio.AbstractEventLoop = None):
+        super().__init__(proxy_host=proxy_host, proxy_port=proxy_port,
+                         loop=loop)
         self._username = username
         self._password = password
 
-    def _create_proto(self):
-        return HttpProto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
-            username=self._username,
-            password=self._password
-        )
+
+class Proxy(ProxyFactory):
+    types = {
+        ProxyType.SOCKS4: Socks4Proxy,
+        ProxyType.SOCKS5: Socks5Proxy,
+        ProxyType.HTTP: HttpProxy,
+    }

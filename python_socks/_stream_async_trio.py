@@ -6,7 +6,7 @@ from ._helpers import is_ipv4_address, is_ipv6_address
 from ._errors import ProxyError
 
 
-class SocketStream(AsyncSocketStream):
+class TrioSocketStream(AsyncSocketStream):
     _socket = None
 
     def __init__(self):
