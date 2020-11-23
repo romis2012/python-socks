@@ -8,7 +8,7 @@ DEFAULT_RECEIVE_SIZE = 65536
 
 
 class SyncSocketStream:
-    _socket = None
+    _socket: socket.socket = None
 
     def __init__(self):
         self._resolver = SyncResolver()

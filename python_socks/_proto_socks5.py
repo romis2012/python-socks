@@ -194,7 +194,7 @@ class ConnectResponse:
             raise ProxyError('Unexpected SOCKS '  # pragma: no cover
                              'version number: {:#02X}'.format(self.socks_ver))
 
-        if self.reply != ReplyCode.GRANTED:
+        if self.reply != ReplyCode.GRANTED:  # pragma: no cover
             msg = ReplyMessages.get(self.reply, 'Unknown error')
             raise ProxyError(msg, self.reply)
 
