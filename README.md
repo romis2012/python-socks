@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/romis2012/python-socks.svg?branch=master)](https://travis-ci.org/romis2012/python-socks)
 [![Coverage Status](https://coveralls.io/repos/github/romis2012/python-socks/badge.svg?branch=master&_=x)](https://coveralls.io/github/romis2012/python-socks?branch=master)
 [![PyPI version](https://badge.fury.io/py/python-socks.svg)](https://badge.fury.io/py/python-socks)
+[![Downloads](https://pepy.tech/badge/python-socks/month)](https://pepy.tech/project/python-socks)
 
 The `python-socks` package provides a core proxy client functionality for Python.
 Supports SOCKS4(a), SOCKS5, HTTP (tunneling) proxy and provides sync and async (asyncio, trio, curio) APIs.
