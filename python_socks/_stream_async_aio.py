@@ -33,7 +33,8 @@ class AsyncioSocketStream(AsyncSocketStream):
             self._socket = _socket
 
     async def close(self):
-        self._socket.close()
+        if self._socket is not None:
+            self._socket.close()
 
     async def write_all(self, data):
         await self._loop.sock_sendall(self._socket, data)

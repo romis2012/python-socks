@@ -30,7 +30,8 @@ class SyncSocketStream:
             self._socket = _socket
 
     def close(self):
-        self._socket.close()
+        if self._socket is not None:
+            self._socket.close()
 
     def write_all(self, data):
         self._socket.sendall(data)
