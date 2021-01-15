@@ -1,21 +1,13 @@
-# noinspection PyProtectedMember
 import socket
 from unittest.mock import MagicMock, patch
 
 import curio
-# noinspection PyPackageRequirements
 import pytest
 
-# noinspection PyProtectedMember
 from python_socks._resolver_async_aio import Resolver as AsyncioResolver
-# noinspection PyProtectedMember
 from python_socks._resolver_async_trio import Resolver as TrioResolver
-# noinspection PyProtectedMember
 from python_socks._resolver_async_curio import Resolver as CurioResolver
-# noinspection PyProtectedMember
 from python_socks._resolver_sync import SyncResolver
-
-# noinspection PyProtectedMember
 
 RET_FAMILY = socket.AF_INET
 RET_HOST = '127.0.0.1'
@@ -64,7 +56,10 @@ async def test_asyncio_resolver():
 
 @pytest.mark.trio
 async def test_trio_resolver():
-    with patch('trio.socket.getaddrinfo', return_value=get_value_async()):
+    getaddrinfo = MagicMock()
+    getaddrinfo.return_value = get_value_async()
+    # with patch('trio.socket.getaddrinfo', return_value=get_value_async()):
+    with patch('trio.socket.getaddrinfo', new=getaddrinfo):
         resolver = TrioResolver()
         family, host = await resolver.resolve(host=TEST_HOST_NAME)
         assert family == RET_FAMILY
@@ -72,10 +67,13 @@ async def test_trio_resolver():
 
 
 def test_curio_resolver():
+    getaddrinfo = MagicMock()
+    getaddrinfo.return_value = get_value_async()
     to_patch = 'python_socks._resolver_async_curio.getaddrinfo'
 
     async def run():
-        with patch(to_patch, return_value=get_value_async()):
+        # with patch(to_patch, return_value=get_value_async()):
+        with patch(to_patch, new=getaddrinfo):
             resolver = CurioResolver()
             family, host = await resolver.resolve(host=TEST_HOST_NAME)
             assert family == RET_FAMILY
