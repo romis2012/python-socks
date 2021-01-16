@@ -41,6 +41,7 @@ setup(
         'python_socks.sync',
         'python_socks.async_',
         'python_socks.async_.asyncio',
+        'python_socks.async_.asyncio.ext',
         'python_socks.async_.trio',
         'python_socks.async_.curio',
     ],

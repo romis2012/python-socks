@@ -7,7 +7,7 @@ from ...._proto_http_async import HttpProto
 from ...._proto_socks4_async import Socks4Proto
 from ...._proto_socks5_async import Socks5Proto
 
-from ._stream import AsyncioAwareStream
+from ._stream import SocketStream
 
 DEFAULT_TIMEOUT = 60
 
@@ -29,7 +29,7 @@ class BaseProxy:
         self._dest_port = None
         self._timeout = None
 
-        self._stream = AsyncioAwareStream(loop=loop)
+        self._stream = SocketStream(loop=loop)
 
     async def connect(self, dest_host, dest_port, timeout=DEFAULT_TIMEOUT):
         self._dest_host = dest_host

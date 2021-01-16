@@ -7,7 +7,7 @@ from ...._helpers import is_ipv4_address, is_ipv6_address
 DEFAULT_RECEIVE_SIZE = 65536
 
 
-class AsyncioAwareStream:
+class SocketStream:
     _loop: asyncio.AbstractEventLoop = None
     _reader: asyncio.StreamReader = None
     _writer: asyncio.StreamWriter = None
