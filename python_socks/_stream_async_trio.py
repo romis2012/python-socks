@@ -12,7 +12,7 @@ class TrioSocketStream(AsyncSocketStream):
     def __init__(self):
         self._resolver = Resolver()
 
-    async def open_connection(self, host, port, timeout=None, _socket=None):
+    async def open_connection(self, host, port, _socket=None):
         if _socket is None:
             family, host = await self._resolve(host=host)
 

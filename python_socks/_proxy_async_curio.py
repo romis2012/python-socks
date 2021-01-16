@@ -1,20 +1,18 @@
 import curio
 
 from ._errors import ProxyConnectionError, ProxyTimeoutError
+from ._proto_http_async import HttpProto
+from ._proto_socks4_async import Socks4Proto
+from ._proto_socks5_async import Socks5Proto
 from ._proxy_async import (
-    AsyncProxy,
-    Socks4ProxyNegotiator,
-    Socks5ProxyNegotiator,
-    HttpProxyNegotiator
+    AsyncProxy
 )
-from ._proxy_factory import ProxyFactory
 from ._stream_async_curio import CurioSocketStream
-from ._types import ProxyType
 
 DEFAULT_TIMEOUT = 60
 
 
-class CurioProxyConnection(AsyncProxy):
+class BaseProxy(AsyncProxy):
     def __init__(self, proxy_host, proxy_port):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
@@ -54,7 +52,6 @@ class CurioProxyConnection(AsyncProxy):
         await self._stream.open_connection(
             host=self._proxy_host,
             port=self._proxy_port,
-            timeout=self._timeout,
             _socket=_socket
         )
         await self.negotiate()
@@ -71,7 +68,7 @@ class CurioProxyConnection(AsyncProxy):
         return self._proxy_port
 
 
-class Socks5Proxy(Socks5ProxyNegotiator, CurioProxyConnection):
+class Socks5Proxy(BaseProxy):
     def __init__(self, proxy_host, proxy_port,
                  username=None, password=None, rdns=None):
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
@@ -79,24 +76,47 @@ class Socks5Proxy(Socks5ProxyNegotiator, CurioProxyConnection):
         self._password = password
         self._rdns = rdns
 
+    async def negotiate(self):
+        proto = Socks5Proto(
+            stream=self._stream,
+            dest_host=self._dest_host,
+            dest_port=self._dest_port,
+            username=self._username,
+            password=self._password,
+            rdns=self._rdns
+        )
+        await proto.negotiate()
 
-class Socks4Proxy(Socks4ProxyNegotiator, CurioProxyConnection):
+
+class Socks4Proxy(BaseProxy):
     def __init__(self, proxy_host, proxy_port, user_id=None, rdns=None):
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
         self._user_id = user_id
         self._rdns = rdns
 
+    async def negotiate(self):
+        proto = Socks4Proto(
+            stream=self._stream,
+            dest_host=self._dest_host,
+            dest_port=self._dest_port,
+            user_id=self._user_id,
+            rdns=self._rdns
+        )
+        await proto.negotiate()
 
-class HttpProxy(HttpProxyNegotiator, CurioProxyConnection):
+
+class HttpProxy(BaseProxy):
     def __init__(self, proxy_host, proxy_port, username=None, password=None):
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
         self._username = username
         self._password = password
 
-
-class Proxy(ProxyFactory):
-    types = {
-        ProxyType.SOCKS4: Socks4Proxy,
-        ProxyType.SOCKS5: Socks5Proxy,
-        ProxyType.HTTP: HttpProxy,
-    }
+    async def negotiate(self):
+        proto = HttpProto(
+            stream=self._stream,
+            dest_host=self._dest_host,
+            dest_port=self._dest_port,
+            username=self._username,
+            password=self._password
+        )
+        await proto.negotiate()

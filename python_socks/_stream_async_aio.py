@@ -15,7 +15,7 @@ class AsyncioSocketStream(AsyncSocketStream):
         self._loop = loop
         self._resolver = Resolver(loop=loop)
 
-    async def open_connection(self, host, port, timeout=None, _socket=None):
+    async def open_connection(self, host, port, _socket=None):
         if _socket is None:
             family, host = await self._resolve(host=host)
 
