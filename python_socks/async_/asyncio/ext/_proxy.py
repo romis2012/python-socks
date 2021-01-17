@@ -30,8 +30,10 @@ class BaseProxy:
         self._timeout = None
 
         self._stream = SocketStream(loop=loop)
+        self._in_chain = False
 
-    async def connect(self, dest_host, dest_port, timeout=DEFAULT_TIMEOUT):
+    async def connect(self, dest_host, dest_port,
+                      timeout=DEFAULT_TIMEOUT) -> SocketStream:
         self._dest_host = dest_host
         self._dest_port = dest_port
         self._timeout = timeout
@@ -48,11 +50,13 @@ class BaseProxy:
     async def _connect(self):
         async with async_timeout.timeout(self._timeout):
             try:
-                await self._stream.open_connection(
-                    host=self._proxy_host,
-                    port=self._proxy_port,
-                )
-                if self._proxy_ssl is not None:
+                if not self._in_chain:
+                    await self._stream.open_connection(
+                        host=self._proxy_host,
+                        port=self._proxy_port,
+                    )
+
+                if self._proxy_ssl is not None:  # pragma: no cover
                     await self._stream.start_tls(
                         hostname=self._proxy_host,
                         ssl_context=self._proxy_ssl

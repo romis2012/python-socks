@@ -22,6 +22,7 @@ class SocketStream:
         self._reader, self._writer = await asyncio.open_connection(
             host=host,
             port=port,
+            family=family,
         )
 
     async def close(self):
@@ -62,11 +63,11 @@ class SocketStream:
 
     @property
     def reader(self):
-        return self._reader
+        return self._reader  # pragma: no cover
 
     @property
     def writer(self):
-        return self._writer
+        return self._writer  # pragma: no cover
 
     @property
     def resolver(self):
