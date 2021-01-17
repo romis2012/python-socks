@@ -1,6 +1,6 @@
 ## python-socks
 
-[![Build Status](https://travis-ci.org/romis2012/python-socks.svg?branch=master)](https://travis-ci.org/romis2012/python-socks)
+[![Build Status](https://api.travis-ci.com/romis2012/python-socks.svg?branch=master)](https://travis-ci.com/github/romis2012/python-socks)
 [![Coverage Status](https://coveralls.io/repos/github/romis2012/python-socks/badge.svg?branch=master&_=x)](https://coveralls.io/github/romis2012/python-socks?branch=master)
 [![PyPI version](https://badge.fury.io/py/python-socks.svg)](https://badge.fury.io/py/python-socks)
 [![Downloads](https://pepy.tech/badge/python-socks/month)](https://pepy.tech/project/python-socks)
