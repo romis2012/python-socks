@@ -1,10 +1,48 @@
 import asyncio
 import socket
 
-from ...._resolver_async_aio import Resolver
 from ...._helpers import is_ipv4_address, is_ipv6_address
+from ...._resolver_async_aio import Resolver
 
 DEFAULT_RECEIVE_SIZE = 65536
+
+
+# noinspection PyUnusedLocal
+async def backport_start_tls(
+        transport,
+        protocol,
+        ssl_context,
+        *,
+        server_side=False,
+        server_hostname=None,
+        ssl_handshake_timeout=None,
+):  # pragma: no cover
+    """
+    Python 3.6 asyncio doesn't have a start_tls() method on the loop
+    so we use this function in place of the loop's start_tls() method.
+    Adapted from this comment:
+    https://github.com/urllib3/urllib3/issues/1323#issuecomment-362494839
+    """
+    import asyncio.sslproto
+
+    loop = asyncio.get_event_loop()
+    waiter = loop.create_future()
+    ssl_protocol = asyncio.sslproto.SSLProtocol(
+        loop,
+        protocol,
+        ssl_context,
+        waiter,
+        server_side=False,
+        server_hostname=server_hostname,
+        call_connection_made=False,
+    )
+
+    transport.set_protocol(ssl_protocol)
+    loop.call_soon(ssl_protocol.connection_made, transport)
+    loop.call_soon(transport.resume_reading)  # type: ignore
+
+    await waiter
+    return ssl_protocol._app_transport  # noqa
 
 
 class SocketStream:
@@ -42,7 +80,9 @@ class SocketStream:
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
 
-        transport = await self._loop.start_tls(
+        loop_start_tls = getattr(self._loop, 'start_tls', backport_start_tls)
+
+        transport = await loop_start_tls(
             self._writer.transport,
             protocol,
             ssl_context,
