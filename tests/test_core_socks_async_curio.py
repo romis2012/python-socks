@@ -1,10 +1,8 @@
 import ssl
 from typing import Optional
 
-import curio
-import curio.io
-import curio.ssl as curiossl
-import pytest  # noqa
+import pytest
+
 from yarl import URL  # noqa
 
 from python_socks import (
@@ -14,15 +12,19 @@ from python_socks import (
     ProxyConnectionError
 )
 from python_socks._proxy_async import AsyncProxy  # noqa
-from python_socks._resolver_async_curio import Resolver  # noqa
 from python_socks.async_ import ProxyChain
-from python_socks.async_.curio import Proxy
 from tests.config import (
     PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
     SOCKS5_IPV4_URL, SOCKS5_IPV4_URL_WO_AUTH, SOCKS5_IPV6_URL, SOCKS4_URL,
     HTTP_PROXY_URL, TEST_URL_IPV4, SOCKS5_IPV4_HOSTNAME_URL,
     TEST_HOST_PEM_FILE, TEST_URL_IPV4_HTTPS
 )
+
+curio = pytest.importorskip('curio')
+import curio.io  # noqa
+import curio.ssl as curiossl  # noqa
+from python_socks._resolver_async_curio import Resolver  # noqa
+from python_socks.async_.curio import Proxy  # noqa
 
 
 async def make_request(proxy: AsyncProxy, url: str,

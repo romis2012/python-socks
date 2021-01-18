@@ -1,12 +1,9 @@
 import socket
 from unittest.mock import MagicMock, patch
 
-import curio
 import pytest
 
 from python_socks._resolver_async_aio import Resolver as AsyncioResolver
-from python_socks._resolver_async_trio import Resolver as TrioResolver
-from python_socks._resolver_async_curio import Resolver as CurioResolver
 from python_socks._resolver_sync import SyncResolver
 
 RET_FAMILY = socket.AF_INET
@@ -56,6 +53,9 @@ async def test_asyncio_resolver():
 
 @pytest.mark.trio
 async def test_trio_resolver():
+    pytest.importorskip('trio')
+    from python_socks._resolver_async_trio import Resolver as TrioResolver
+
     getaddrinfo = MagicMock()
     getaddrinfo.return_value = get_value_async()
     # with patch('trio.socket.getaddrinfo', return_value=get_value_async()):
@@ -67,6 +67,9 @@ async def test_trio_resolver():
 
 
 def test_curio_resolver():
+    curio = pytest.importorskip('curio')
+    from python_socks._resolver_async_curio import Resolver as CurioResolver
+
     getaddrinfo = MagicMock()
     getaddrinfo.return_value = get_value_async()
     to_patch = 'python_socks._resolver_async_curio.getaddrinfo'
