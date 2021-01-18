@@ -1,13 +1,10 @@
+from contextlib import contextmanager
 from unittest import mock
 
 import pytest  # noqa
 
 # noinspection PyProtectedMember
 from python_socks._resolver_async_aio import Resolver as AsyncioResolver
-# noinspection PyProtectedMember
-from python_socks._resolver_async_curio import Resolver as CurioResolver
-# noinspection PyProtectedMember
-from python_socks._resolver_async_trio import Resolver as TrioResolver
 # noinspection PyProtectedMember
 from python_socks._resolver_sync import SyncResolver
 from tests.config import (
@@ -24,6 +21,11 @@ from tests.mocks import sync_resolve_factory, async_resolve_factory
 from tests.proxy_server import ProxyConfig, ProxyServer
 
 
+@contextmanager
+def nullcontext():
+    yield None
+
+
 @pytest.fixture(scope='session', autouse=True)
 def patch_resolvers():
     p1 = mock.patch.object(
@@ -38,17 +40,30 @@ def patch_resolvers():
         new=async_resolve_factory(AsyncioResolver)
     )
 
-    p3 = mock.patch.object(
-        TrioResolver,
-        attribute='resolve',
-        new=async_resolve_factory(TrioResolver)
-    )
+    try:
+        # noinspection PyProtectedMember
+        from python_socks._resolver_async_trio import Resolver as TrioResolver
+    except ImportError:
+        p3 = nullcontext()
+    else:
+        p3 = mock.patch.object(
+            TrioResolver,
+            attribute='resolve',
+            new=async_resolve_factory(TrioResolver)
+        )
 
-    p4 = mock.patch.object(
-        CurioResolver,
-        attribute='resolve',
-        new=async_resolve_factory(CurioResolver)
-    )
+    try:
+        # noinspection PyProtectedMember
+        from python_socks._resolver_async_curio import (
+            Resolver as CurioResolver)
+    except ImportError:
+        p4 = nullcontext()
+    else:
+        p4 = mock.patch.object(
+            CurioResolver,
+            attribute='resolve',
+            new=async_resolve_factory(CurioResolver)
+        )
 
     with p1, p2, p3, p4:
         yield None

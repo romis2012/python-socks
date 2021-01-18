@@ -1,8 +1,7 @@
 import socket
 import ssl
-import trio  # noqa
+import pytest
 
-import pytest  # noqa
 from yarl import URL  # noqa
 
 from python_socks import (
@@ -13,10 +12,7 @@ from python_socks import (
 )
 
 from python_socks._proxy_async import AsyncProxy  # noqa
-from python_socks.async_.trio import Proxy
 from python_socks.async_ import ProxyChain
-# noinspection PyUnresolvedReferences,PyProtectedMember
-from python_socks._resolver_async_trio import Resolver
 
 from tests.config import (
     PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
@@ -24,6 +20,11 @@ from tests.config import (
     HTTP_PROXY_URL, TEST_URL_IPV4, SOCKS5_IPV4_HOSTNAME_URL,
     TEST_HOST_PEM_FILE, TEST_URL_IPV4_HTTPS
 )
+
+trio = pytest.importorskip('trio')
+from python_socks.async_.trio import Proxy  # noqa
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from python_socks._resolver_async_trio import Resolver  # noqa
 
 
 async def make_request(proxy: AsyncProxy,
