@@ -90,7 +90,13 @@ class SocketStream:
             server_hostname=hostname
         )
 
-        reader.set_transport(transport)
+        # reader.set_transport(transport)
+
+        # Initialize the protocol, so it is made aware of being tied to
+        # a TLS connection.
+        # See: https://github.com/encode/httpx/issues/859
+        protocol.connection_made(transport)
+
         writer = asyncio.StreamWriter(
             transport=transport,
             protocol=protocol,
