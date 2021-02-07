@@ -10,19 +10,6 @@ DEFAULT_TIMEOUT = 60
 
 
 class SyncProxy:
-    def connect(self, dest_host, dest_port, timeout=None, _socket=None):
-        raise NotImplementedError()  # pragma: no cover
-
-    @property
-    def proxy_host(self):
-        raise NotImplementedError()  # pragma: no cover
-
-    @property
-    def proxy_port(self):
-        raise NotImplementedError()  # pragma: no cover
-
-
-class BaseProxy(SyncProxy):
     def __init__(self, proxy_host, proxy_port):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
@@ -33,7 +20,8 @@ class BaseProxy(SyncProxy):
 
         self._stream = SyncSocketStream()
 
-    def connect(self, dest_host, dest_port, timeout=None, _socket=None):
+    def connect(self, dest_host, dest_port, timeout=None,
+                _socket=None) -> socket.socket:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
@@ -49,7 +37,7 @@ class BaseProxy(SyncProxy):
                 _socket=_socket
             )
 
-            self.negotiate()
+            self._negotiate()
 
         except socket.timeout as e:
             self._stream.close()
@@ -66,7 +54,7 @@ class BaseProxy(SyncProxy):
 
         return self._stream.socket
 
-    def negotiate(self):
+    def _negotiate(self):
         raise NotImplementedError
 
     @property
@@ -78,7 +66,7 @@ class BaseProxy(SyncProxy):
         return self._proxy_port
 
 
-class Socks5Proxy(BaseProxy):
+class Socks5Proxy(SyncProxy):
     def __init__(self, proxy_host, proxy_port,
                  username=None, password=None, rdns=None):
         super().__init__(
@@ -89,7 +77,7 @@ class Socks5Proxy(BaseProxy):
         self._password = password
         self._rdns = rdns
 
-    def negotiate(self):
+    def _negotiate(self):
         proto = Socks5Proto(
             stream=self._stream,
             dest_host=self._dest_host,
@@ -101,7 +89,7 @@ class Socks5Proxy(BaseProxy):
         proto.negotiate()
 
 
-class Socks4Proxy(BaseProxy):
+class Socks4Proxy(SyncProxy):
     def __init__(self, proxy_host, proxy_port,
                  user_id=None, rdns=None):
         super().__init__(
@@ -111,7 +99,7 @@ class Socks4Proxy(BaseProxy):
         self._user_id = user_id
         self._rdns = rdns
 
-    def negotiate(self):
+    def _negotiate(self):
         proto = Socks4Proto(
             stream=self._stream,
             dest_host=self._dest_host,
@@ -122,7 +110,7 @@ class Socks4Proxy(BaseProxy):
         proto.negotiate()
 
 
-class HttpProxy(BaseProxy):
+class HttpProxy(SyncProxy):
     def __init__(self, proxy_host, proxy_port, username=None, password=None):
         super().__init__(
             proxy_host=proxy_host,
@@ -131,7 +119,7 @@ class HttpProxy(BaseProxy):
         self._username = username
         self._password = password
 
-    def negotiate(self):
+    def _negotiate(self):
         proto = HttpProto(
             stream=self._stream,
             dest_host=self._dest_host,

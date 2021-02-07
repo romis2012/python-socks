@@ -13,7 +13,7 @@ from python_socks import (
 from python_socks._resolver_async_aio import Resolver
 from python_socks.async_.asyncio.ext import Proxy
 from python_socks.async_.asyncio.ext import ProxyChain
-from python_socks.async_.asyncio.ext._proxy import BaseProxy
+from python_socks.async_.asyncio.ext._proxy import AsyncioProxy
 from tests.config import (
     PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
     SOCKS5_IPV4_URL, SOCKS5_IPV4_URL_WO_AUTH, SOCKS5_IPV6_URL, SOCKS4_URL,
@@ -22,7 +22,7 @@ from tests.config import (
 )
 
 
-async def make_request(proxy: BaseProxy,
+async def make_request(proxy: AsyncioProxy,
                        url: str, resolve_host=False, timeout=None):
     loop = asyncio.get_event_loop()
 

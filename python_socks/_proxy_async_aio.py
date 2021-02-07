@@ -1,4 +1,5 @@
 import asyncio
+import socket
 import sys
 
 import async_timeout
@@ -15,7 +16,7 @@ from ._stream_async_aio import AsyncioSocketStream
 DEFAULT_TIMEOUT = 60
 
 
-class BaseProxy(AsyncProxy):
+class AsyncioProxy(AsyncProxy):
     def __init__(self, proxy_host, proxy_port,
                  loop: asyncio.AbstractEventLoop = None):
 
@@ -33,7 +34,8 @@ class BaseProxy(AsyncProxy):
 
         self._stream = AsyncioSocketStream(loop=loop)
 
-    async def connect(self, dest_host, dest_port, timeout=None, _socket=None):
+    async def connect(self, dest_host, dest_port, timeout=None,
+                      _socket=None) -> socket.socket:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
@@ -68,7 +70,7 @@ class BaseProxy(AsyncProxy):
                 raise
 
             try:
-                await self.negotiate()
+                await self._negotiate()
             except asyncio.CancelledError:  # pragma: no cover
                 # https://bugs.python.org/issue30064
                 # https://bugs.python.org/issue34795
@@ -98,7 +100,7 @@ class BaseProxy(AsyncProxy):
                 or is_proactor_event_loop()
                 or is_uvloop_event_loop())
 
-    async def negotiate(self):
+    async def _negotiate(self):
         raise NotImplementedError()  # pragma: no cover
 
     @property
@@ -110,7 +112,7 @@ class BaseProxy(AsyncProxy):
         return self._proxy_port
 
 
-class Socks5Proxy(BaseProxy):
+class Socks5Proxy(AsyncioProxy):
     def __init__(self, proxy_host, proxy_port,
                  username=None, password=None, rdns=None,
                  loop: asyncio.AbstractEventLoop = None):
@@ -120,7 +122,7 @@ class Socks5Proxy(BaseProxy):
         self._password = password
         self._rdns = rdns
 
-    async def negotiate(self):
+    async def _negotiate(self):
         proto = Socks5Proto(
             stream=self._stream,
             dest_host=self._dest_host,
@@ -132,7 +134,7 @@ class Socks5Proxy(BaseProxy):
         await proto.negotiate()
 
 
-class Socks4Proxy(BaseProxy):
+class Socks4Proxy(AsyncioProxy):
     def __init__(self, proxy_host, proxy_port,
                  user_id=None, rdns=None,
                  loop: asyncio.AbstractEventLoop = None):
@@ -141,7 +143,7 @@ class Socks4Proxy(BaseProxy):
         self._user_id = user_id
         self._rdns = rdns
 
-    async def negotiate(self):
+    async def _negotiate(self):
         proto = Socks4Proto(
             stream=self._stream,
             dest_host=self._dest_host,
@@ -152,7 +154,7 @@ class Socks4Proxy(BaseProxy):
         await proto.negotiate()
 
 
-class HttpProxy(BaseProxy):
+class HttpProxy(AsyncioProxy):
     def __init__(self, proxy_host, proxy_port,
                  username=None, password=None,
                  loop: asyncio.AbstractEventLoop = None):
@@ -161,7 +163,7 @@ class HttpProxy(BaseProxy):
         self._username = username
         self._password = password
 
-    async def negotiate(self):
+    async def _negotiate(self):
         proto = HttpProto(
             stream=self._stream,
             dest_host=self._dest_host,

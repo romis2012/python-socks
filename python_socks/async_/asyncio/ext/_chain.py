@@ -1,9 +1,9 @@
 from typing import Iterable
-from ._proxy import BaseProxy
+from ._proxy import AsyncioProxy
 
 
 class ProxyChain:
-    def __init__(self, proxies: Iterable[BaseProxy]):
+    def __init__(self, proxies: Iterable[AsyncioProxy]):
         self._proxies = proxies
 
     async def connect(self, dest_host, dest_port, timeout=None):

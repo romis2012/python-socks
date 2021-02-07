@@ -45,7 +45,7 @@ async def backport_start_tls(
     return ssl_protocol._app_transport  # noqa
 
 
-class SocketStream:
+class AsyncioSocketStream:
     _loop: asyncio.AbstractEventLoop = None
     _reader: asyncio.StreamReader = None
     _writer: asyncio.StreamWriter = None
