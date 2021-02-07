@@ -8,6 +8,7 @@ from ._proxy_async import (
     AsyncProxy
 )
 from ._stream_async_trio import TrioSocketStream
+from ._resolver_async_trio import Resolver
 
 DEFAULT_TIMEOUT = 60
 
@@ -22,6 +23,7 @@ class TrioProxy(AsyncProxy):
         self._timeout = None
 
         self._stream = TrioSocketStream()
+        self._resolver = Resolver()
 
     async def connect(self, dest_host, dest_port, timeout=None,
                       _socket=None) -> trio.socket.SocketType:
@@ -82,6 +84,7 @@ class Socks5Proxy(TrioProxy):
     async def _negotiate(self):
         proto = Socks5Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,
@@ -100,6 +103,7 @@ class Socks4Proxy(TrioProxy):
     async def _negotiate(self):
         proto = Socks4Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             user_id=self._user_id,

@@ -7,6 +7,7 @@ from ...._proto_http_async import HttpProto
 from ...._proto_socks4_async import Socks4Proto
 from ...._proto_socks5_async import Socks5Proto
 
+from ...._resolver_async_aio import Resolver
 from ._stream import AsyncioSocketStream
 
 DEFAULT_TIMEOUT = 60
@@ -30,6 +31,8 @@ class AsyncioProxy:
         self._timeout = None
 
         self._stream = AsyncioSocketStream(loop=loop)
+        self._resolver = Resolver(loop=loop)
+
         self._in_chain = False
 
     async def connect(self, dest_host, dest_port,
@@ -105,7 +108,8 @@ class Socks5Proxy(AsyncioProxy):
 
     async def _negotiate(self):
         proto = Socks5Proto(
-            stream=self._stream,  # noqa
+            stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,
@@ -130,7 +134,8 @@ class Socks4Proxy(AsyncioProxy):
 
     async def _negotiate(self):
         proto = Socks4Proto(
-            stream=self._stream,  # noqa
+            stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             user_id=self._user_id,

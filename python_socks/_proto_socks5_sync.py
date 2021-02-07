@@ -1,6 +1,7 @@
 import socket
 
 from ._stream_sync import SyncSocketStream
+from ._resolver_sync import SyncResolver
 from ._proto_socks5 import (
     AuthMethod,
     AuthMethodsRequest,
@@ -13,7 +14,7 @@ from ._proto_socks5 import (
 
 
 class Socks5Proto:
-    def __init__(self, stream: SyncSocketStream,
+    def __init__(self, stream: SyncSocketStream, resolver: SyncResolver,
                  dest_host, dest_port, username=None, password=None,
                  rdns=None):
 
@@ -27,6 +28,7 @@ class Socks5Proto:
         self._rdns = rdns
 
         self._stream = stream
+        self._resolver = resolver
 
     def negotiate(self):
         self._socks_auth()
@@ -67,7 +69,7 @@ class Socks5Proto:
         )
 
         if req.need_resolve:
-            _, addr = self._stream.resolver.resolve(
+            _, addr = self._resolver.resolve(
                 req.host,
                 family=socket.AF_UNSPEC
             )

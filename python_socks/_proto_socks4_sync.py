@@ -1,6 +1,7 @@
 import socket
 
 from ._stream_sync import SyncSocketStream
+from ._resolver_sync import SyncResolver
 from ._proto_socks4 import (
     ConnectRequest,
     ConnectResponse
@@ -8,8 +9,8 @@ from ._proto_socks4 import (
 
 
 class Socks4Proto:
-    def __init__(self, stream: SyncSocketStream, dest_host, dest_port,
-                 user_id=None, rdns=None):
+    def __init__(self, stream: SyncSocketStream, resolver: SyncResolver,
+                 dest_host, dest_port, user_id=None, rdns=None):
 
         if rdns is None:
             rdns = False
@@ -21,6 +22,7 @@ class Socks4Proto:
         self._rdns = rdns
 
         self._stream = stream
+        self._resolver = resolver
 
     def negotiate(self):
         self._socks_connect()
@@ -34,7 +36,7 @@ class Socks4Proto:
         )
 
         if req.need_resolve:
-            _, addr = self._stream.resolver.resolve(
+            _, addr = self._resolver.resolve(
                 req.host,
                 family=socket.AF_INET
             )

@@ -9,6 +9,7 @@ from ._proxy_async import (
     AsyncProxy
 )
 from ._stream_async_curio import CurioSocketStream
+from ._resolver_async_curio import Resolver
 
 DEFAULT_TIMEOUT = 60
 
@@ -23,6 +24,7 @@ class CurioProxy(AsyncProxy):
         self._timeout = None
 
         self._stream = CurioSocketStream()
+        self._resolver = Resolver()
 
     async def connect(self, dest_host, dest_port, timeout=None,
                       _socket=None) -> curio.io.Socket:
@@ -81,6 +83,7 @@ class Socks5Proxy(CurioProxy):
     async def _negotiate(self):
         proto = Socks5Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,
@@ -99,6 +102,7 @@ class Socks4Proxy(CurioProxy):
     async def _negotiate(self):
         proto = Socks4Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             user_id=self._user_id,

@@ -55,10 +55,6 @@ class AsyncioSocketStream(AsyncSocketStream):
         return data
 
     @property
-    def resolver(self):
-        return self._resolver
-
-    @property
     def socket(self):
         return self._socket
 

@@ -12,6 +12,7 @@ from ._proxy_async import (
     AsyncProxy
 )
 from ._stream_async_aio import AsyncioSocketStream
+from ._resolver_async_aio import Resolver
 
 DEFAULT_TIMEOUT = 60
 
@@ -33,6 +34,7 @@ class AsyncioProxy(AsyncProxy):
         self._timeout = None
 
         self._stream = AsyncioSocketStream(loop=loop)
+        self._resolver = Resolver(loop=loop)
 
     async def connect(self, dest_host, dest_port, timeout=None,
                       _socket=None) -> socket.socket:
@@ -125,6 +127,7 @@ class Socks5Proxy(AsyncioProxy):
     async def _negotiate(self):
         proto = Socks5Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,
@@ -146,6 +149,7 @@ class Socks4Proxy(AsyncioProxy):
     async def _negotiate(self):
         proto = Socks4Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             user_id=self._user_id,

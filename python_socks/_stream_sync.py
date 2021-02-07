@@ -52,10 +52,6 @@ class SyncSocketStream:
         return data
 
     @property
-    def resolver(self) -> SyncResolver:
-        return self._resolver
-
-    @property
     def socket(self):
         return self._socket
 

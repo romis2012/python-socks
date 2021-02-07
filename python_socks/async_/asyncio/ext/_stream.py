@@ -3,6 +3,7 @@ import socket
 
 from ...._helpers import is_ipv4_address, is_ipv6_address
 from ...._resolver_async_aio import Resolver
+from ...._stream_async import AsyncSocketStream
 
 DEFAULT_RECEIVE_SIZE = 65536
 
@@ -45,7 +46,7 @@ async def backport_start_tls(
     return ssl_protocol._app_transport  # noqa
 
 
-class AsyncioSocketStream:
+class AsyncioSocketStream(AsyncSocketStream):
     _loop: asyncio.AbstractEventLoop = None
     _reader: asyncio.StreamReader = None
     _writer: asyncio.StreamWriter = None
@@ -114,10 +115,6 @@ class AsyncioSocketStream:
     @property
     def writer(self):
         return self._writer  # pragma: no cover
-
-    @property
-    def resolver(self):
-        return self._resolver
 
     async def _resolve(self, host):
         if is_ipv4_address(host):

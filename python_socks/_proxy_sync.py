@@ -5,6 +5,7 @@ from ._proto_http_sync import HttpProto
 from ._proto_socks4_sync import Socks4Proto
 from ._proto_socks5_sync import Socks5Proto
 from ._stream_sync import SyncSocketStream
+from ._resolver_sync import SyncResolver
 
 DEFAULT_TIMEOUT = 60
 
@@ -19,6 +20,7 @@ class SyncProxy:
         self._timeout = None
 
         self._stream = SyncSocketStream()
+        self._resolver = SyncResolver()
 
     def connect(self, dest_host, dest_port, timeout=None,
                 _socket=None) -> socket.socket:
@@ -80,6 +82,7 @@ class Socks5Proxy(SyncProxy):
     def _negotiate(self):
         proto = Socks5Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,
@@ -102,6 +105,7 @@ class Socks4Proxy(SyncProxy):
     def _negotiate(self):
         proto = Socks4Proto(
             stream=self._stream,
+            resolver=self._resolver,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             user_id=self._user_id,
