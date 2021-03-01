@@ -33,20 +33,21 @@ async def make_request(proxy: AsyncioProxy,
         resolver = Resolver(loop=loop)
         _, dest_host = await resolver.resolve(url.host)
 
-    stream = await proxy.connect(
-        dest_host=dest_host,
-        dest_port=url.port,
-        timeout=timeout
-    )
-
     ssl_context = None
     if url.scheme == 'https':
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
         ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
 
-    if ssl_context:
-        await stream.start_tls(hostname=url.host, ssl_context=ssl_context)
+    stream = await proxy.connect(
+        dest_host=dest_host,
+        dest_port=url.port,
+        dest_ssl=ssl_context,
+        timeout=timeout
+    )
+
+    # if ssl_context:
+    #     await stream.start_tls(hostname=url.host, ssl_context=ssl_context)
 
     request = (
         'GET {rel_url} HTTP/1.1\r\n'

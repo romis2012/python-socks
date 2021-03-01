@@ -28,6 +28,7 @@ class AsyncioProxy:
 
         self._dest_host = None
         self._dest_port = None
+        self._dest_ssl = None
         self._timeout = None
 
         self._stream = AsyncioSocketStream(loop=loop)
@@ -35,10 +36,11 @@ class AsyncioProxy:
 
         self._in_chain = False
 
-    async def connect(self, dest_host, dest_port,
+    async def connect(self, dest_host, dest_port, dest_ssl=None,
                       timeout=DEFAULT_TIMEOUT) -> AsyncioSocketStream:
         self._dest_host = dest_host
         self._dest_port = dest_port
+        self._dest_ssl = dest_ssl
         self._timeout = timeout
 
         try:
@@ -75,6 +77,11 @@ class AsyncioProxy:
 
             try:
                 await self._negotiate()
+                if self._dest_ssl is not None:
+                    await self._stream.start_tls(
+                        hostname=self._dest_host,
+                        ssl_context=self._dest_ssl
+                    )
             except Exception:
                 await self._stream.close()
                 raise

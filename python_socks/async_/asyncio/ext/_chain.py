@@ -6,7 +6,8 @@ class ProxyChain:
     def __init__(self, proxies: Iterable[AsyncioProxy]):
         self._proxies = proxies
 
-    async def connect(self, dest_host, dest_port, timeout=None):
+    async def connect(self, dest_host, dest_port,
+                      dest_ssl=None, timeout=None):
         stream = None
         proxies = list(self._proxies)
 
@@ -26,6 +27,7 @@ class ProxyChain:
         stream = await proxies[length].connect(
             dest_host=dest_host,
             dest_port=dest_port,
+            dest_ssl=dest_ssl,
             timeout=timeout,
         )
 
