@@ -67,9 +67,11 @@ class AsyncioSocketStream(AsyncSocketStream):
     async def close(self):
         if self._writer is not None:
             self._writer.close()
+            self._writer.transport.abort()  # noqa
 
     async def write_all(self, data):
         self._writer.write(data)
+        await self._writer.drain()
 
     async def read(self, max_bytes=DEFAULT_RECEIVE_SIZE):
         return await self._reader.read(max_bytes)
