@@ -71,7 +71,7 @@ class AsyncioProxy:
                 msg = ('Can not connect to proxy %s:%s [%s]' %
                        (self._proxy_host, self._proxy_port, e.strerror))
                 raise ProxyConnectionError(e.errno, msg) from e
-            except Exception:  # pragma: no cover
+            except (asyncio.CancelledError, Exception):  # pragma: no cover
                 await self._stream.close()
                 raise
 
@@ -82,7 +82,7 @@ class AsyncioProxy:
                         hostname=self._dest_host,
                         ssl_context=self._dest_ssl
                     )
-            except Exception:
+            except (asyncio.CancelledError, Exception):
                 await self._stream.close()
                 raise
 
