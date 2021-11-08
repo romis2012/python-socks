@@ -6,9 +6,9 @@ trio>=0.16.0
 pytest-trio>=0.6.0
 curio>=1.4
 # pytest-curio>=0.1.0
-coverage==4.5.4
-pytest-cov>=2.6.0
-coveralls>=1.5.1
+coverage>=5.2.1
+pytest-cov>=3.0.0
+coveralls>=3.3.0
 attrs>=19.3.0
 yarl>=1.4.2
 async-timeout>=3.0.1
