@@ -12,11 +12,11 @@ from python_socks import (
     ProxyConnectionError
 )
 
-from python_socks._proxy_async import AsyncProxy  # noqa
+from python_socks._abc import AsyncProxy
 from python_socks.async_.asyncio import Proxy
 from python_socks.async_ import ProxyChain
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from python_socks._resolver_async_aio import Resolver
+from python_socks.async_.asyncio._resolver import Resolver
 
 from tests.config import (
     PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,

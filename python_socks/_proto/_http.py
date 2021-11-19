@@ -1,8 +1,8 @@
 import sys
 
-from ._basic_auth import BasicAuth
-from ._errors import ProxyError
-from ._version import __title__, __version__
+from .._basic_auth import BasicAuth
+from .._errors import ProxyError
+from .._version import __title__, __version__
 
 DEFAULT_USER_AGENT = 'Python/{0[0]}.{0[1]} {1}/{2}'.format(
     sys.version_info, __title__, __version__)

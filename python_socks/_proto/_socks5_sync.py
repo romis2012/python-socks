@@ -1,22 +1,28 @@
 import socket
 
-from ._stream_sync import SyncSocketStream
-from ._resolver_sync import SyncResolver
-from ._proto_socks5 import (
+from ._socks5 import (
     AuthMethod,
     AuthMethodsRequest,
     AuthMethodsResponse,
     AuthRequest,
     AuthResponse,
     ConnectRequest,
-    ConnectResponse
+    ConnectResponse,
 )
+from .. import _abc as abc
 
 
 class Socks5Proto:
-    def __init__(self, stream: SyncSocketStream, resolver: SyncResolver,
-                 dest_host, dest_port, username=None, password=None,
-                 rdns=None):
+    def __init__(
+        self,
+        stream: abc.SyncSocketStream,
+        resolver: abc.SyncResolver,
+        dest_host,
+        dest_port,
+        username=None,
+        password=None,
+        rdns=None,
+    ):
 
         if rdns is None:
             rdns = True
@@ -39,10 +45,7 @@ class Socks5Proto:
 
         # authenticate
         if auth_method == AuthMethod.USERNAME_PASSWORD:
-            req = AuthRequest(
-                username=self._username,
-                password=self._password
-            )
+            req = AuthRequest(username=self._username, password=self._password)
 
             self._stream.write_all(bytes(req))
 
@@ -50,10 +53,7 @@ class Socks5Proto:
             res.validate()
 
     def _choose_auth_method(self) -> AuthMethod:
-        req = AuthMethodsRequest(
-            username=self._username,
-            password=self._password
-        )
+        req = AuthMethodsRequest(username=self._username, password=self._password)
 
         self._stream.write_all(bytes(req))
 
@@ -62,17 +62,10 @@ class Socks5Proto:
         return res.auth_method
 
     def _socks_connect(self):
-        req = ConnectRequest(
-            host=self._dest_host,
-            port=self._dest_port,
-            rdns=self._rdns
-        )
+        req = ConnectRequest(host=self._dest_host, port=self._dest_port, rdns=self._rdns)
 
         if req.need_resolve:
-            _, addr = self._resolver.resolve(
-                req.host,
-                family=socket.AF_UNSPEC
-            )
+            _, addr = self._resolver.resolve(req.host, family=socket.AF_UNSPEC)
             req.set_resolved_host(addr)
 
         self._stream.write_all(bytes(req))

@@ -1,23 +1,23 @@
 import socket
 from curio.socket import getaddrinfo
 
-from ._resolver_async import AsyncResolver
+from ... import _abc as abc
 
 
-class Resolver(AsyncResolver):
-
+class Resolver(abc.AsyncResolver):
     async def resolve(self, host, port=0, family=socket.AF_UNSPEC):
         try:
             infos = await getaddrinfo(
-                host=host, port=port,
-                family=family, type=socket.SOCK_STREAM
+                host=host,
+                port=port,
+                family=family,
+                type=socket.SOCK_STREAM,
             )
         except socket.gaierror:  # pragma: no cover
             infos = None
 
-        if not infos:
-            raise OSError('Can`t resolve address '  # pragma: no cover
-                          '{}:{} [{}]'.format(host, port, family))
+        if not infos:  # pragma: no cover
+            raise OSError('Can`t resolve address {}:{} [{}]'.format(host, port, family))
 
         infos = sorted(infos, key=lambda info: info[0])
 

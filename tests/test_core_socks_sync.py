@@ -1,8 +1,8 @@
 import socket
 import ssl
 
-import pytest  # noqa
-from yarl import URL  # noqa
+import pytest
+from yarl import URL
 
 from python_socks import (
     ProxyType,
@@ -10,8 +10,8 @@ from python_socks import (
     ProxyTimeoutError,
     ProxyConnectionError
 )
-from python_socks._proxy_sync import SyncProxy  # noqa
-from python_socks._resolver_sync import SyncResolver  # noqa
+from python_socks._abc import SyncProxy
+from python_socks.sync._resolver import SyncResolver
 from python_socks.sync import Proxy
 from python_socks.sync import ProxyChain
 from tests.config import (
@@ -30,8 +30,7 @@ def read_status_code(sock: socket.socket) -> int:
     return int(status_code)
 
 
-def make_request(proxy: SyncProxy, url: str,
-                 resolve_host=False, timeout=None):
+def make_request(proxy: SyncProxy, url: str, resolve_host=False, timeout=None):
     url = URL(url)
 
     dest_host = url.host

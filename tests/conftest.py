@@ -4,9 +4,9 @@ from unittest import mock
 import pytest  # noqa
 
 # noinspection PyProtectedMember
-from python_socks._resolver_async_aio import Resolver as AsyncioResolver
+from python_socks.async_.asyncio._resolver import Resolver as AsyncioResolver
 # noinspection PyProtectedMember
-from python_socks._resolver_sync import SyncResolver
+from python_socks.sync._resolver import SyncResolver
 from tests.config import (
     PROXY_HOST_IPV4, PROXY_HOST_IPV6,
     SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
@@ -17,13 +17,19 @@ from tests.config import (
     TEST_HOST_KEY_FILE,
 )
 from tests.http_server import HttpServer, HttpServerConfig
-from tests.mocks import sync_resolve_factory, async_resolve_factory
+from tests.mocks import sync_resolve_factory, async_resolve_factory, getaddrinfo
 from tests.proxy_server import ProxyConfig, ProxyServer
 
 
 @contextmanager
 def nullcontext():
     yield None
+
+
+@pytest.fixture(scope='session', autouse=True)
+def patch_socket_getaddrinfo():
+    with mock.patch('socket.getaddrinfo', side_effect=getaddrinfo):
+        yield None
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -42,7 +48,7 @@ def patch_resolvers():
 
     try:
         # noinspection PyProtectedMember
-        from python_socks._resolver_async_trio import Resolver as TrioResolver
+        from python_socks.async_.trio._resolver import Resolver as TrioResolver
     except ImportError:
         p3 = nullcontext()
     else:
@@ -54,8 +60,7 @@ def patch_resolvers():
 
     try:
         # noinspection PyProtectedMember
-        from python_socks._resolver_async_curio import (
-            Resolver as CurioResolver)
+        from python_socks.async_.curio._resolver import Resolver as CurioResolver
     except ImportError:
         p4 = nullcontext()
     else:

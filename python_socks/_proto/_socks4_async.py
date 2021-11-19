@@ -1,17 +1,19 @@
 import socket
 
-from ._stream_async import AsyncSocketStream
-from ._resolver_async import AsyncResolver
-from ._proto_socks4 import (
-    ConnectRequest,
-    ConnectResponse
-)
+from ._socks4 import ConnectRequest, ConnectResponse
+from .. import _abc as abc
 
 
 class Socks4Proto:
-    def __init__(self, stream: AsyncSocketStream, resolver: AsyncResolver,
-                 dest_host, dest_port, user_id=None,
-                 rdns=None):
+    def __init__(
+        self,
+        stream: abc.AsyncSocketStream,
+        resolver: abc.AsyncResolver,
+        dest_host,
+        dest_port,
+        user_id=None,
+        rdns=None,
+    ):
 
         if rdns is None:
             rdns = False
@@ -33,14 +35,11 @@ class Socks4Proto:
             host=self._dest_host,
             port=self._dest_port,
             user_id=self._user_id,
-            rdns=self._rdns
+            rdns=self._rdns,
         )
 
         if req.need_resolve:
-            _, addr = await self._resolver.resolve(
-                req.host,
-                family=socket.AF_INET
-            )
+            _, addr = await self._resolver.resolve(req.host, family=socket.AF_INET)
             req.set_resolved_host(addr)
 
         await self._stream.write_all(bytes(req))

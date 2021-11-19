@@ -1,22 +1,28 @@
 import socket
 
-from ._stream_async import AsyncSocketStream
-from ._resolver_async import AsyncResolver
-from ._proto_socks5 import (
+from ._socks5 import (
     AuthMethod,
     AuthMethodsRequest,
     AuthMethodsResponse,
     AuthRequest,
     AuthResponse,
     ConnectRequest,
-    ConnectResponse
+    ConnectResponse,
 )
+from .. import _abc as abc
 
 
 class Socks5Proto:
-    def __init__(self, stream: AsyncSocketStream, resolver: AsyncResolver,
-                 dest_host, dest_port, username=None, password=None,
-                 rdns=None):
+    def __init__(
+        self,
+        stream: abc.AsyncSocketStream,
+        resolver: abc.AsyncResolver,
+        dest_host,
+        dest_port,
+        username=None,
+        password=None,
+        rdns=None,
+    ):
 
         if rdns is None:
             rdns = True
@@ -40,10 +46,7 @@ class Socks5Proto:
 
         # authenticate
         if auth_method == AuthMethod.USERNAME_PASSWORD:
-            req = AuthRequest(
-                username=self._username,
-                password=self._password
-            )
+            req = AuthRequest(username=self._username, password=self._password)
 
             await self._stream.write_all(bytes(req))
 
@@ -53,7 +56,7 @@ class Socks5Proto:
     async def _choose_auth_method(self) -> AuthMethod:
         req = AuthMethodsRequest(
             username=self._username,
-            password=self._password
+            password=self._password,
         )
 
         await self._stream.write_all(bytes(req))
@@ -66,14 +69,11 @@ class Socks5Proto:
         req = ConnectRequest(
             host=self._dest_host,
             port=self._dest_port,
-            rdns=self._rdns
+            rdns=self._rdns,
         )
 
         if req.need_resolve:
-            _, addr = await self._resolver.resolve(
-                req.host,
-                family=socket.AF_UNSPEC
-            )
+            _, addr = await self._resolver.resolve(req.host, family=socket.AF_UNSPEC)
             req.set_resolved_host(addr)
 
         await self._stream.write_all(bytes(req))

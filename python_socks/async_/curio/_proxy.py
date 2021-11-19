@@ -1,19 +1,20 @@
-import trio
+import curio
+import curio.io
 
-from ._errors import ProxyConnectionError, ProxyTimeoutError
-from ._proto_http_async import HttpProto
-from ._proto_socks4_async import Socks4Proto
-from ._proto_socks5_async import Socks5Proto
-from ._proxy_async import (
-    AsyncProxy
-)
-from ._stream_async_trio import TrioSocketStream
-from ._resolver_async_trio import Resolver
+from ..._errors import ProxyConnectionError, ProxyTimeoutError
+from ..._proto._http_async import HttpProto
+from ..._proto._socks4_async import Socks4Proto
+from ..._proto._socks5_async import Socks5Proto
+from ._stream import CurioSocketStream
+from ._resolver import Resolver
+from ._connect import connect_tcp
+
+from ... import _abc as abc
 
 DEFAULT_TIMEOUT = 60
 
 
-class TrioProxy(AsyncProxy):
+class CurioProxy(abc.AsyncProxy):
     def __init__(self, proxy_host, proxy_port):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
@@ -22,11 +23,16 @@ class TrioProxy(AsyncProxy):
         self._dest_port = None
         self._timeout = None
 
-        self._stream = TrioSocketStream()
+        self._stream = None
         self._resolver = Resolver()
 
-    async def connect(self, dest_host, dest_port, timeout=None,
-                      _socket=None) -> trio.socket.SocketType:
+    async def connect(
+        self,
+        dest_host,
+        dest_port,
+        timeout=None,
+        _socket=None,
+    ) -> curio.io.Socket:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
@@ -35,34 +41,38 @@ class TrioProxy(AsyncProxy):
         self._timeout = timeout
 
         try:
-            await self._connect(_socket=_socket)
+            return await curio.timeout_after(self._timeout, self._connect, _socket)
         except OSError as e:
-            await self._stream.close()
-            msg = ('Can not connect to proxy %s:%s [%s]' %
-                   (self._proxy_host, self._proxy_port, e.strerror))
+            await self._close()
+            msg = 'Could not connect to proxy {}:{} [{}]'.format(
+                self._proxy_host,
+                self._proxy_port,
+                e.strerror,
+            )
             raise ProxyConnectionError(e.errno, msg) from e
-        except trio.TooSlowError as e:
-            await self._stream.close()
-            raise ProxyTimeoutError('Proxy connection timed out: %s'
-                                    % self._timeout) from e
+        except curio.TaskTimeout as e:
+            await self._close()
+            raise ProxyTimeoutError('Proxy connection timed out: %s' % self._timeout) from e
         except Exception:
-            await self._stream.close()
+            await self._close()
             raise
 
-        return self._stream.socket
-
     async def _connect(self, _socket=None):
-        with trio.fail_after(self._timeout):
-            await self._stream.open_connection(
+        if _socket is None:
+            _socket = await connect_tcp(
                 host=self._proxy_host,
                 port=self._proxy_port,
-                _socket=_socket
             )
-
-            await self._negotiate()
+        self._stream = CurioSocketStream(_socket)
+        await self._negotiate()
+        return _socket
 
     async def _negotiate(self):
-        raise NotImplementedError
+        raise NotImplementedError()
+
+    async def _close(self):
+        if self._stream is not None:
+            await self._stream.close()
 
     @property
     def proxy_host(self):
@@ -73,9 +83,8 @@ class TrioProxy(AsyncProxy):
         return self._proxy_port
 
 
-class Socks5Proxy(TrioProxy):
-    def __init__(self, proxy_host, proxy_port,
-                 username=None, password=None, rdns=None):
+class Socks5Proxy(CurioProxy):
+    def __init__(self, proxy_host, proxy_port, username=None, password=None, rdns=None):
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
         self._username = username
         self._password = password
@@ -89,12 +98,12 @@ class Socks5Proxy(TrioProxy):
             dest_port=self._dest_port,
             username=self._username,
             password=self._password,
-            rdns=self._rdns
+            rdns=self._rdns,
         )
         await proto.negotiate()
 
 
-class Socks4Proxy(TrioProxy):
+class Socks4Proxy(CurioProxy):
     def __init__(self, proxy_host, proxy_port, user_id=None, rdns=None):
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
         self._user_id = user_id
@@ -107,12 +116,12 @@ class Socks4Proxy(TrioProxy):
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             user_id=self._user_id,
-            rdns=self._rdns
+            rdns=self._rdns,
         )
         await proto.negotiate()
 
 
-class HttpProxy(TrioProxy):
+class HttpProxy(CurioProxy):
     def __init__(self, proxy_host, proxy_port, username=None, password=None):
         super().__init__(proxy_host=proxy_host, proxy_port=proxy_port)
         self._username = username
@@ -124,6 +133,6 @@ class HttpProxy(TrioProxy):
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,
-            password=self._password
+            password=self._password,
         )
         await proto.negotiate()

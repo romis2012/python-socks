@@ -1,8 +1,8 @@
 import enum
 import ipaddress
 
-from ._helpers import is_ipv4_address
-from ._errors import ProxyError
+from .._helpers import is_ipv4_address
+from .._errors import ProxyError
 
 RSV = NULL = 0x00
 SOCKS_VER = 0x04

@@ -1,6 +1,6 @@
 from ..._types import ProxyType
 from ..._proxy_factory import ProxyFactory
-from ..._proxy_async_trio import (
+from ._proxy import (
     TrioProxy,
     Socks5Proxy,
     Socks4Proxy,

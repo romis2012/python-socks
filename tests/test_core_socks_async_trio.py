@@ -11,7 +11,7 @@ from python_socks import (
     ProxyConnectionError
 )
 
-from python_socks._proxy_async import AsyncProxy  # noqa
+from python_socks._abc import AsyncProxy
 from python_socks.async_ import ProxyChain
 
 from tests.config import (
@@ -24,11 +24,10 @@ from tests.config import (
 trio = pytest.importorskip('trio')
 from python_socks.async_.trio import Proxy  # noqa
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from python_socks._resolver_async_trio import Resolver  # noqa
+from python_socks.async_.trio._resolver import Resolver  # noqa
 
 
-async def make_request(proxy: AsyncProxy,
-                       url: str, resolve_host=False, timeout=None):
+async def make_request(proxy: AsyncProxy, url: str, resolve_host=False, timeout=None):
     url = URL(url)
 
     dest_host = url.host

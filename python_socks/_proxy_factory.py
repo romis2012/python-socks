@@ -10,19 +10,22 @@ class ProxyFactory(Generic[T]):
     types: Dict[ProxyType, Type[Any]]
 
     @classmethod
-    def create(cls, proxy_type: ProxyType, host: str, port: int,
-               username: str = None, password: str = None,
-               rdns: bool = None, **kwargs) -> T:
+    def create(
+        cls,
+        proxy_type: ProxyType,
+        host: str,
+        port: int,
+        username: str = None,
+        password: str = None,
+        rdns: bool = None,
+        **kwargs,
+    ) -> T:
 
         proxy_cls = cls.types.get(proxy_type)
 
         if proxy_type == ProxyType.SOCKS4:
             return proxy_cls(
-                proxy_host=host,
-                proxy_port=port,
-                user_id=username,
-                rdns=rdns,
-                **kwargs
+                proxy_host=host, proxy_port=port, user_id=username, rdns=rdns, **kwargs
             )
 
         if proxy_type == ProxyType.SOCKS5:
@@ -32,20 +35,15 @@ class ProxyFactory(Generic[T]):
                 username=username,
                 password=password,
                 rdns=rdns,
-                **kwargs
+                **kwargs,
             )
 
         if proxy_type == ProxyType.HTTP:
             return proxy_cls(
-                proxy_host=host,
-                proxy_port=port,
-                username=username,
-                password=password,
-                **kwargs
+                proxy_host=host, proxy_port=port, username=username, password=password, **kwargs
             )
 
-        raise ValueError('Invalid proxy type: %s'  # pragma: no cover
-                         % proxy_type)
+        raise ValueError('Invalid proxy type: {}'.format(proxy_type))
 
     @classmethod
     def from_url(cls, url: str, **kwargs) -> T:
@@ -56,5 +54,5 @@ class ProxyFactory(Generic[T]):
             port=port,
             username=username,
             password=password,
-            **kwargs
+            **kwargs,
         )

@@ -10,7 +10,7 @@ from python_socks import (
     ProxyTimeoutError,
     ProxyConnectionError
 )
-from python_socks._resolver_async_aio import Resolver
+from python_socks.async_.asyncio._resolver import Resolver
 from python_socks.async_.asyncio.ext import Proxy
 from python_socks.async_.asyncio.ext import ProxyChain
 from python_socks.async_.asyncio.ext._proxy import AsyncioProxy

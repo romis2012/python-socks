@@ -1,22 +1,19 @@
 import asyncio
-import socket
 
-from ...._helpers import is_ipv4_address, is_ipv6_address
-from ...._resolver_async_aio import Resolver
-from ...._stream_async import AsyncSocketStream
+from .... import _abc as abc
 
 DEFAULT_RECEIVE_SIZE = 65536
 
 
 # noinspection PyUnusedLocal
 async def backport_start_tls(
-        transport,
-        protocol,
-        ssl_context,
-        *,
-        server_side=False,
-        server_hostname=None,
-        ssl_handshake_timeout=None,
+    transport,
+    protocol,
+    ssl_context,
+    *,
+    server_side=False,
+    server_hostname=None,
+    ssl_handshake_timeout=None,
 ):  # pragma: no cover
     """
     Python 3.6 asyncio doesn't have a start_tls() method on the loop
@@ -46,28 +43,20 @@ async def backport_start_tls(
     return ssl_protocol._app_transport  # noqa
 
 
-class AsyncioSocketStream(AsyncSocketStream):
+class AsyncioSocketStream(abc.AsyncSocketStream):
     _loop: asyncio.AbstractEventLoop = None
     _reader: asyncio.StreamReader = None
     _writer: asyncio.StreamWriter = None
 
-    def __init__(self, loop: asyncio.AbstractEventLoop):
+    def __init__(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+    ):
         self._loop = loop
-        self._resolver = Resolver(loop=loop)
-
-    async def open_connection(self, host, port):
-        family, host = await self._resolve(host=host)
-
-        self._reader, self._writer = await asyncio.open_connection(
-            host=host,
-            port=port,
-            family=family,
-        )
-
-    async def close(self):
-        if self._writer is not None:
-            self._writer.close()
-            self._writer.transport.abort()  # noqa
+        self._reader = reader
+        self._writer = writer
 
     async def write_all(self, data):
         self._writer.write(data)
@@ -86,11 +75,11 @@ class AsyncioSocketStream(AsyncSocketStream):
         loop_start_tls = getattr(self._loop, 'start_tls', backport_start_tls)
 
         transport = await loop_start_tls(
-            self._writer.transport,
+            self._writer.transport,  # type: ignore
             protocol,
             ssl_context,
             server_side=False,
-            server_hostname=hostname
+            server_hostname=hostname,
         )
 
         # reader.set_transport(transport)
@@ -104,11 +93,15 @@ class AsyncioSocketStream(AsyncSocketStream):
             transport=transport,
             protocol=protocol,
             reader=reader,
-            loop=self._loop
+            loop=self._loop,
         )
 
         self._reader = reader
         self._writer = writer
+
+    async def close(self):
+        self._writer.close()
+        self._writer.transport.abort()  # noqa
 
     @property
     def reader(self):
@@ -117,10 +110,3 @@ class AsyncioSocketStream(AsyncSocketStream):
     @property
     def writer(self):
         return self._writer  # pragma: no cover
-
-    async def _resolve(self, host):
-        if is_ipv4_address(host):
-            return socket.AF_INET, host
-        if is_ipv6_address(host):
-            return socket.AF_INET6, host
-        return await self._resolver.resolve(host=host)
