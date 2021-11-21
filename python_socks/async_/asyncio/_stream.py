@@ -34,4 +34,3 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
     async def close(self):
         if self._socket is not None:
             self._socket.close()
-
