@@ -1,6 +1,6 @@
 import socket
 
-from ._socks4 import ConnectRequest, ConnectResponse
+from .socks4 import ConnectRequest, ConnectResponse
 from .. import _abc as abc
 
 

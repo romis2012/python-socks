@@ -6,6 +6,7 @@ trio>=0.16.0
 pytest-trio>=0.6.0
 curio>=1.4
 # pytest-curio>=0.1.0
+anyio>=3.3.4
 coverage>=5.2.1
 pytest-cov>=3.0.0
 coveralls>=3.3.0

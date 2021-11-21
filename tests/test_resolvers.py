@@ -66,6 +66,20 @@ async def test_trio_resolver():
         assert host == RET_HOST
 
 
+@pytest.mark.anyio
+async def test_anyio_resolver():
+    pytest.importorskip('anyio')
+    from python_socks.async_.anyio._resolver import Resolver as AnyioResolver
+
+    getaddrinfo = MagicMock()
+    getaddrinfo.return_value = get_value_async()
+    with patch('anyio.getaddrinfo', new=getaddrinfo):
+        resolver = AnyioResolver()
+        family, host = await resolver.resolve(host=TEST_HOST_NAME)
+        assert family == RET_FAMILY
+        assert host == RET_HOST
+
+
 def test_curio_resolver():
     curio = pytest.importorskip('curio')
     from python_socks.async_.curio._resolver import Resolver as CurioResolver

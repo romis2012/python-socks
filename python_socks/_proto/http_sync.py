@@ -1,17 +1,16 @@
-from ._http import ConnectRequest, ConnectResponse
+from .http import ConnectRequest, ConnectResponse
 from .. import _abc as abc
 
 
 class HttpProto:
     def __init__(
         self,
-        stream: abc.AsyncSocketStream,
+        stream: abc.SyncSocketStream,
         dest_host,
         dest_port,
         username=None,
         password=None,
     ):
-
         self._dest_host = dest_host
         self._dest_port = dest_port
         self._username = username
@@ -19,7 +18,7 @@ class HttpProto:
 
         self._stream = stream
 
-    async def negotiate(self):
+    def negotiate(self):
         request = ConnectRequest(
             host=self._dest_host,
             port=self._dest_port,
@@ -27,7 +26,7 @@ class HttpProto:
             password=self._password,
         )
 
-        await self._stream.write_all(bytes(request))
+        self._stream.write_all(bytes(request))
 
-        response = ConnectResponse(await self._stream.read())
+        response = ConnectResponse(self._stream.read())
         response.validate()

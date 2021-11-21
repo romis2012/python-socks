@@ -1,9 +1,9 @@
 import socket
 
 from .._errors import ProxyConnectionError, ProxyTimeoutError
-from .._proto._http_sync import HttpProto
-from .._proto._socks4_sync import Socks4Proto
-from .._proto._socks5_sync import Socks5Proto
+from .._proto.http_sync import HttpProto
+from .._proto.socks4_sync import Socks4Proto
+from .._proto.socks5_sync import Socks5Proto
 
 from ._stream import SyncSocketStream
 from ._resolver import SyncResolver

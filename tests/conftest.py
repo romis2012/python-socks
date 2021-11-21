@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from unittest import mock
 
-import pytest  # noqa
+import pytest
 
 # noinspection PyProtectedMember
 from python_socks.async_.asyncio._resolver import Resolver as AsyncioResolver
@@ -70,7 +70,18 @@ def patch_resolvers():
             new=async_resolve_factory(CurioResolver)
         )
 
-    with p1, p2, p3, p4:
+    try:
+        from python_socks.async_.anyio._resolver import Resolver as AnyioResolver
+    except ImportError:
+        p5 = nullcontext()
+    else:
+        p5 = mock.patch.object(
+            AnyioResolver,
+            attribute='resolve',
+            new=async_resolve_factory(AnyioResolver)
+        )
+
+    with p1, p2, p3, p4, p5:
         yield None
 
 

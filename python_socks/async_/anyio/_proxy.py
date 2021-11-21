@@ -1,33 +1,28 @@
-import asyncio
+from typing import Optional
 
-import async_timeout
+import anyio
 
-from ...._errors import ProxyConnectionError, ProxyTimeoutError
-from ...._proto.http_async import HttpProto
-from ...._proto.socks4_async import Socks4Proto
-from ...._proto.socks5_async import Socks5Proto
+from ..._errors import ProxyConnectionError, ProxyTimeoutError
+from ..._proto.http_async import HttpProto
+from ..._proto.socks4_async import Socks4Proto
+from ..._proto.socks5_async import Socks5Proto
 
-from .._resolver import Resolver
-from ._stream import AsyncioSocketStream
+from ._resolver import Resolver
+from ._stream import AnyioSocketStream
 from ._connect import connect_tcp
 
 DEFAULT_TIMEOUT = 60
 
 
-class AsyncioProxy:
+class AnyioProxy:
+    _stream: Optional[AnyioSocketStream]
+
     def __init__(
         self,
         proxy_host,
         proxy_port,
         proxy_ssl=None,
-        loop: asyncio.AbstractEventLoop = None,
     ):
-
-        if loop is None:
-            loop = asyncio.get_event_loop()
-
-        self._loop = loop
-
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
         self._proxy_ssl = proxy_ssl
@@ -38,7 +33,7 @@ class AsyncioProxy:
         self._timeout = None
 
         self._stream = None
-        self._resolver = Resolver(loop=loop)
+        self._resolver = Resolver()
 
     async def connect(
         self,
@@ -46,8 +41,8 @@ class AsyncioProxy:
         dest_port,
         dest_ssl=None,
         timeout=None,
-        _stream: AsyncioSocketStream = None,
-    ) -> AsyncioSocketStream:
+        _stream: AnyioSocketStream = None,
+    ) -> AnyioSocketStream:
 
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -58,29 +53,19 @@ class AsyncioProxy:
         self._timeout = timeout
 
         try:
-            return await self._connect(_stream)
-        except asyncio.TimeoutError as e:
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
-
-    async def _connect(self, _stream: AsyncioSocketStream) -> AsyncioSocketStream:
-        async with async_timeout.timeout(self._timeout):
-            try:
+            with anyio.fail_after(self._timeout):
                 if _stream is None:
-                    reader, writer = await connect_tcp(
-                        host=self._proxy_host,
-                        port=self._proxy_port,
-                        loop=self._loop,
-                    )
-                    self._stream = AsyncioSocketStream(
-                        loop=self._loop,
-                        reader=reader,
-                        writer=writer,
+                    self._stream = AnyioSocketStream(
+                        await connect_tcp(
+                            host=self._proxy_host,
+                            port=self._proxy_port,
+                        )
                     )
                 else:
                     self._stream = _stream
 
-                if self._proxy_ssl is not None:  # pragma: no cover
-                    await self._stream.start_tls(
+                if self._proxy_ssl is not None:
+                    self._stream = await self._stream.start_tls(
                         hostname=self._proxy_host,
                         ssl_context=self._proxy_ssl,
                     )
@@ -88,24 +73,28 @@ class AsyncioProxy:
                 await self._negotiate()
 
                 if self._dest_ssl is not None:
-                    await self._stream.start_tls(
+                    self._stream = await self._stream.start_tls(
                         hostname=self._dest_host,
                         ssl_context=self._dest_ssl,
                     )
 
+                # return self._stream.anyio_stream
                 return self._stream
 
-            except OSError as e:
-                await self._close()
-                msg = 'Could not connect to proxy {}:{} [{}]'.format(
-                    self._proxy_host,
-                    self._proxy_port,
-                    e.strerror,
-                )
-                raise ProxyConnectionError(e.errno, msg) from e
-            except (asyncio.CancelledError, Exception):
-                await self._close()
-                raise
+        except TimeoutError as e:
+            await self._close()
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
+        except (OSError, anyio.BrokenResourceError) as e:
+            await self._close()
+            msg = 'Could not connect to proxy {}:{} [{}]'.format(
+                self._proxy_host,
+                self._proxy_port,
+                e.strerror,
+            )
+            raise ProxyConnectionError(e.errno, msg) from e
+        except Exception:
+            await self._close()
+            raise
 
     async def _negotiate(self):
         raise NotImplementedError()
@@ -123,7 +112,7 @@ class AsyncioProxy:
         return self._proxy_port
 
 
-class Socks5Proxy(AsyncioProxy):
+class Socks5Proxy(AnyioProxy):
     def __init__(
         self,
         proxy_host,
@@ -132,13 +121,11 @@ class Socks5Proxy(AsyncioProxy):
         password=None,
         rdns=None,
         proxy_ssl=None,
-        loop: asyncio.AbstractEventLoop = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
-            loop=loop,
         )
         self._username = username
         self._password = password
@@ -157,7 +144,7 @@ class Socks5Proxy(AsyncioProxy):
         await proto.negotiate()
 
 
-class Socks4Proxy(AsyncioProxy):
+class Socks4Proxy(AnyioProxy):
     def __init__(
         self,
         proxy_host,
@@ -165,13 +152,11 @@ class Socks4Proxy(AsyncioProxy):
         user_id=None,
         rdns=None,
         proxy_ssl=None,
-        loop: asyncio.AbstractEventLoop = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
-            loop=loop,
         )
         self._user_id = user_id
         self._rdns = rdns
@@ -188,7 +173,7 @@ class Socks4Proxy(AsyncioProxy):
         await proto.negotiate()
 
 
-class HttpProxy(AsyncioProxy):
+class HttpProxy(AnyioProxy):
     def __init__(
         self,
         proxy_host,
@@ -196,20 +181,18 @@ class HttpProxy(AsyncioProxy):
         username=None,
         password=None,
         proxy_ssl=None,
-        loop: asyncio.AbstractEventLoop = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
-            loop=loop,
         )
         self._username = username
         self._password = password
 
     async def _negotiate(self):
         proto = HttpProto(
-            stream=self._stream,  # noqa
+            stream=self._stream,
             dest_host=self._dest_host,
             dest_port=self._dest_port,
             username=self._username,

@@ -1,6 +1,6 @@
 import socket
 
-from ._socks5 import (
+from .socks5 import (
     AuthMethod,
     AuthMethodsRequest,
     AuthMethodsResponse,

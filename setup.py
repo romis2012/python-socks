@@ -20,7 +20,7 @@ with codecs.open(os.path.join(os.path.abspath(os.path.dirname(
         raise RuntimeError('Unable to determine version.')
 
 if sys.version_info < (3, 6, 1):
-    raise RuntimeError('python-socks requires Python >= 3.6.1')
+    raise RuntimeError('python-socks requires Python >= 3.6.2')
 
 with open('README.md') as f:
     long_description = f.read()
@@ -38,17 +38,20 @@ setup(
     long_description_content_type='text/markdown',
     packages=[
         'python_socks',
+        'python_socks._proto',
         'python_socks.sync',
         'python_socks.async_',
         'python_socks.async_.asyncio',
         'python_socks.async_.asyncio.ext',
         'python_socks.async_.trio',
         'python_socks.async_.curio',
+        'python_socks.async_.anyio',
     ],
-    keywords='socks socks5 socks4 http proxy asyncio trio curio',
+    keywords='socks socks5 socks4 http proxy asyncio trio curio anyio',
     extras_require={
         'asyncio': ['async-timeout>=3.0.1'],
         'trio': ['trio>=0.16.0'],
         'curio': ['curio>=1.4'],
+        'anyio': ['anyio>=3.3.4'],
     }
 )

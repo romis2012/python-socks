@@ -1,9 +1,9 @@
 import trio
 
 from ..._errors import ProxyConnectionError, ProxyTimeoutError
-from ..._proto._http_async import HttpProto
-from ..._proto._socks4_async import Socks4Proto
-from ..._proto._socks5_async import Socks5Proto
+from ..._proto.http_async import HttpProto
+from ..._proto.socks4_async import Socks4Proto
+from ..._proto.socks5_async import Socks5Proto
 from ._stream import TrioSocketStream
 from ._resolver import Resolver
 from ._connect import connect_tcp
