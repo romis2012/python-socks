@@ -1,5 +1,6 @@
 import socket
 import ssl
+from typing import Union
 
 import pytest
 from yarl import URL
@@ -10,10 +11,10 @@ from python_socks import (
     ProxyTimeoutError,
     ProxyConnectionError
 )
-from python_socks.sync._proxy import SyncProxy
 from python_socks.sync._resolver import SyncResolver
-from python_socks.sync import Proxy
-from python_socks.sync import ProxyChain
+from python_socks.sync.v2 import Proxy
+from python_socks.sync.v2 import ProxyChain
+from python_socks.sync.v2._proxy import SyncProxy
 
 from tests.config import (
     PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
@@ -31,7 +32,13 @@ def read_status_code(sock: socket.socket) -> int:
     return int(status_code)
 
 
-def make_request(proxy: SyncProxy, url: str, resolve_host=False, timeout=None):
+def make_request(
+    proxy: Union[SyncProxy, ProxyChain],
+    url: str,
+    resolve_host=False,
+    timeout=None,
+):
+
     url = URL(url)
 
     dest_host = url.host
@@ -39,34 +46,40 @@ def make_request(proxy: SyncProxy, url: str, resolve_host=False, timeout=None):
         resolver = SyncResolver()
         _, dest_host = resolver.resolve(url.host)
 
-    sock: socket.socket = proxy.connect(
-        dest_host=dest_host,
-        dest_port=url.port,
-        timeout=timeout
-    )
-
+    ssl_context = None
     if url.scheme == 'https':
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
         ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
 
-        sock = ssl_context.wrap_socket(
-            sock=sock,
-            server_hostname=url.host
-        )
+    stream = proxy.connect(
+        dest_host=dest_host,
+        dest_port=url.port,
+        dest_ssl=ssl_context,
+        timeout=timeout,
+    )
 
+    # fmt: off
     request = (
         'GET {rel_url} HTTP/1.1\r\n'
         'Host: {host}\r\n'
         'Connection: close\r\n\r\n'
     )
+    # fmt: on
+
     request = request.format(rel_url=url.path_qs, host=url.host)
     request = request.encode('ascii')
-    sock.sendall(request)
 
-    status_code = read_status_code(sock)
-    sock.close()
-    return status_code
+    stream.write_all(request)
+
+    response = stream.read(1024)
+
+    status_line = response.split(b'\r\n', 1)[0]
+    version, status_code, *reason = status_line.split()
+
+    stream.close()
+
+    return int(status_code)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
@@ -185,6 +198,5 @@ def test_proxy_chain(url):
         Proxy.from_url(SOCKS4_URL),
         Proxy.from_url(HTTP_PROXY_URL),
     ])
-    # noinspection PyTypeChecker
     status_code = make_request(proxy=proxy, url=TEST_URL_IPV4_HTTPS)
     assert status_code == 200

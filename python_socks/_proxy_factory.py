@@ -40,7 +40,11 @@ class ProxyFactory(Generic[T]):
 
         if proxy_type == ProxyType.HTTP:
             return proxy_cls(
-                proxy_host=host, proxy_port=port, username=username, password=password, **kwargs
+                proxy_host=host,
+                proxy_port=port,
+                username=username,
+                password=password,
+                **kwargs,
             )
 
         raise ValueError('Invalid proxy type: {}'.format(proxy_type))

@@ -3,6 +3,7 @@ omit =
 #    */_proxy_chain_*.py
 #    python_socks/async_/asyncio/ext/*
     python_socks/_basic_auth.py
+    python_socks/sync/v2/_ssl_transport.py
 [report]
 # Regexes for lines to exclude from consideration
 exclude_lines =
