@@ -6,7 +6,13 @@ class ProxyChain:
     def __init__(self, proxies: Iterable[SyncProxy]):
         self._proxies = proxies
 
-    def connect(self, dest_host, dest_port, dest_ssl=None,  timeout=None,):
+    def connect(
+        self,
+        dest_host,
+        dest_port,
+        dest_ssl=None,
+        timeout=None,
+    ):
         stream = None
         proxies = list(self._proxies)
 
@@ -16,7 +22,7 @@ class ProxyChain:
                 dest_host=proxies[i + 1].proxy_host,
                 dest_port=proxies[i + 1].proxy_port,
                 timeout=timeout,
-                _stream=stream
+                _stream=stream,
             )
 
         stream = proxies[length].connect(
@@ -24,7 +30,7 @@ class ProxyChain:
             dest_port=dest_port,
             dest_ssl=dest_ssl,
             timeout=timeout,
-            _stream=stream
+            _stream=stream,
         )
 
         return stream
