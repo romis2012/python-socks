@@ -1,4 +1,6 @@
 import ssl
+from typing import Union
+
 import trio
 
 from ...._errors import ProxyError
@@ -6,11 +8,13 @@ from .... import _abc as abc
 
 DEFAULT_RECEIVE_SIZE = 65536
 
+TrioStreamType = Union[trio.SocketStream, trio.SSLStream]
+
 
 class TrioSocketStream(abc.AsyncSocketStream):
-    _stream: trio.abc.Stream
+    _stream: TrioStreamType
 
-    def __init__(self, stream: trio.abc.Stream):
+    def __init__(self, stream: TrioStreamType):
         self._stream = stream
 
     async def write_all(self, data):
@@ -28,7 +32,11 @@ class TrioSocketStream(abc.AsyncSocketStream):
             data += packet
         return data
 
-    async def start_tls(self, hostname: str, ssl_context: ssl.SSLContext) -> 'TrioSocketStream':
+    async def start_tls(
+        self,
+        hostname: str,
+        ssl_context: ssl.SSLContext,
+    ) -> 'TrioSocketStream':
         ssl_stream = trio.SSLStream(
             self._stream,
             ssl_context=ssl_context,
@@ -43,5 +51,5 @@ class TrioSocketStream(abc.AsyncSocketStream):
         await self._stream.aclose()
 
     @property
-    def trio_stream(self):
+    def trio_stream(self) -> TrioStreamType:
         return self._stream

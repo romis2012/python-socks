@@ -1,4 +1,5 @@
 import ssl
+from typing import Union
 
 import anyio
 import anyio.abc
@@ -9,9 +10,13 @@ from ... import _abc as abc
 
 DEFAULT_RECEIVE_SIZE = 65536
 
+AnyioStreamType = Union[anyio.abc.SocketStream, TLSStream]
+
 
 class AnyioSocketStream(abc.AsyncSocketStream):
-    def __init__(self, stream: anyio.abc.ByteStream) -> None:
+    _stream: AnyioStreamType
+
+    def __init__(self, stream: AnyioStreamType) -> None:
         self._stream = stream
 
     async def write_all(self, data: bytes):
@@ -32,7 +37,11 @@ class AnyioSocketStream(abc.AsyncSocketStream):
             data += packet
         return data
 
-    async def start_tls(self, hostname: str, ssl_context: ssl.SSLContext) -> 'AnyioSocketStream':
+    async def start_tls(
+        self,
+        hostname: str,
+        ssl_context: ssl.SSLContext,
+    ) -> 'AnyioSocketStream':
         ssl_stream = await TLSStream.wrap(
             self._stream,
             ssl_context=ssl_context,
@@ -46,5 +55,5 @@ class AnyioSocketStream(abc.AsyncSocketStream):
         await self._stream.aclose()
 
     @property
-    def anyio_stream(self) -> anyio.abc.ByteStream:  # pragma: no cover
+    def anyio_stream(self) -> AnyioStreamType:  # pragma: no cover
         return self._stream

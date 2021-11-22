@@ -11,7 +11,7 @@ async def connect_tcp(
     host: str,
     port: int,
     local_host: str = None,
-) -> anyio.abc.ByteStream:
+) -> anyio.abc.SocketStream:
 
     family, host = await _resolve_host(host)
 
