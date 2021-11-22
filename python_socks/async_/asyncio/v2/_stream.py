@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 
 from .... import _abc as abc
 
@@ -68,7 +69,11 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
     async def read_exact(self, n):
         return await self._reader.readexactly(n)
 
-    async def start_tls(self, hostname, ssl_context):
+    async def start_tls(
+        self,
+        hostname: str,
+        ssl_context: ssl.SSLContext,
+    ) -> 'AsyncioSocketStream':
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
 
@@ -96,8 +101,12 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
             loop=self._loop,
         )
 
-        self._reader = reader
-        self._writer = writer
+        stream = AsyncioSocketStream(loop=self._loop, reader=reader, writer=writer)
+        # When we return a new SocketStream with new StreamReader/StreamWriter instances
+        # we need to keep references to the old StreamReader/StreamWriter so that they
+        # are not garbage collected and closed while we're still using them.
+        stream._inner = self  # type: ignore
+        return stream
 
     async def close(self):
         self._writer.close()

@@ -30,7 +30,7 @@ class SyncProxy(abc.SyncProxy):
         self,
         dest_host: str,
         dest_port: int,
-        timeout: int = None,
+        timeout: float = None,
         _socket=None,
     ) -> socket.socket:
 

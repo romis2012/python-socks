@@ -15,7 +15,11 @@ DEFAULT_TIMEOUT = 60
 
 
 class CurioProxy(abc.AsyncProxy):
-    def __init__(self, proxy_host, proxy_port):
+    def __init__(
+        self,
+        proxy_host: str,
+        proxy_port: int,
+    ):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
 
@@ -28,9 +32,9 @@ class CurioProxy(abc.AsyncProxy):
 
     async def connect(
         self,
-        dest_host,
-        dest_port,
-        timeout=None,
+        dest_host: str,
+        dest_port: int,
+        timeout: float = None,
         _socket=None,
     ) -> curio.io.Socket:
         if timeout is None:

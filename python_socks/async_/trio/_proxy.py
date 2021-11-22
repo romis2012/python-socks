@@ -13,7 +13,11 @@ DEFAULT_TIMEOUT = 60
 
 
 class TrioProxy(abc.AsyncProxy):
-    def __init__(self, proxy_host: str, proxy_port: int):
+    def __init__(
+        self,
+        proxy_host: str,
+        proxy_port: int,
+    ):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
 
@@ -28,7 +32,7 @@ class TrioProxy(abc.AsyncProxy):
         self,
         dest_host: str,
         dest_port: int,
-        timeout: int = None,
+        timeout: float = None,
         _socket=None,
     ) -> trio.socket.SocketType:
 

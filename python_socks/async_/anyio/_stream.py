@@ -1,3 +1,5 @@
+import ssl
+
 import anyio
 import anyio.abc
 from anyio.streams.tls import TLSStream
@@ -30,7 +32,7 @@ class AnyioSocketStream(abc.AsyncSocketStream):
             data += packet
         return data
 
-    async def start_tls(self, hostname, ssl_context) -> 'AnyioSocketStream':
+    async def start_tls(self, hostname: str, ssl_context: ssl.SSLContext) -> 'AnyioSocketStream':
         ssl_stream = await TLSStream.wrap(
             self._stream,
             ssl_context=ssl_context,

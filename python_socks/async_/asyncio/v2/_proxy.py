@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 
 import async_timeout
 
@@ -17,9 +18,9 @@ DEFAULT_TIMEOUT = 60
 class AsyncioProxy:
     def __init__(
         self,
-        proxy_host,
-        proxy_port,
-        proxy_ssl=None,
+        proxy_host: str,
+        proxy_port: int,
+        proxy_ssl: ssl.SSLContext = None,
         loop: asyncio.AbstractEventLoop = None,
     ):
 
@@ -42,10 +43,10 @@ class AsyncioProxy:
 
     async def connect(
         self,
-        dest_host,
-        dest_port,
-        dest_ssl=None,
-        timeout=None,
+        dest_host: str,
+        dest_port: int,
+        dest_ssl: ssl.SSLContext = None,
+        timeout: float = None,
         _stream: AsyncioSocketStream = None,
     ) -> AsyncioSocketStream:
 
@@ -80,7 +81,7 @@ class AsyncioProxy:
                     self._stream = _stream
 
                 if self._proxy_ssl is not None:  # pragma: no cover
-                    await self._stream.start_tls(
+                    self._stream = await self._stream.start_tls(
                         hostname=self._proxy_host,
                         ssl_context=self._proxy_ssl,
                     )
@@ -88,7 +89,7 @@ class AsyncioProxy:
                 await self._negotiate()
 
                 if self._dest_ssl is not None:
-                    await self._stream.start_tls(
+                    self._stream = await self._stream.start_tls(
                         hostname=self._dest_host,
                         ssl_context=self._dest_ssl,
                     )

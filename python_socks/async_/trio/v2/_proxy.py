@@ -1,23 +1,20 @@
 import ssl
-from typing import Optional
 
-import anyio
+import trio
 
-from ..._errors import ProxyConnectionError, ProxyTimeoutError
-from ..._proto.http_async import HttpProto
-from ..._proto.socks4_async import Socks4Proto
-from ..._proto.socks5_async import Socks5Proto
-
-from ._resolver import Resolver
-from ._stream import AnyioSocketStream
+from ...._errors import ProxyConnectionError, ProxyTimeoutError
+from ...._proto.http_async import HttpProto
+from ...._proto.socks4_async import Socks4Proto
+from ...._proto.socks5_async import Socks5Proto
+from .._resolver import Resolver
+from ._stream import TrioSocketStream
 from ._connect import connect_tcp
+from .... import _abc as abc
 
 DEFAULT_TIMEOUT = 60
 
 
-class AnyioProxy:
-    _stream: Optional[AnyioSocketStream]
-
+class TrioProxy(abc.AsyncProxy):
     def __init__(
         self,
         proxy_host: str,
@@ -42,8 +39,8 @@ class AnyioProxy:
         dest_port: int,
         dest_ssl: ssl.SSLContext = None,
         timeout: float = None,
-        _stream: AnyioSocketStream = None,
-    ) -> AnyioSocketStream:
+        _stream: TrioSocketStream = None,
+    ) -> TrioSocketStream:
 
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -54,9 +51,9 @@ class AnyioProxy:
         self._timeout = timeout
 
         try:
-            with anyio.fail_after(self._timeout):
+            with trio.fail_after(self._timeout):
                 if _stream is None:
-                    self._stream = AnyioSocketStream(
+                    self._stream = TrioSocketStream(
                         await connect_tcp(
                             host=self._proxy_host,
                             port=self._proxy_port,
@@ -79,13 +76,9 @@ class AnyioProxy:
                         ssl_context=self._dest_ssl,
                     )
 
-                # return self._stream.anyio_stream
                 return self._stream
 
-        except TimeoutError as e:
-            await self._close()
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
-        except (OSError, anyio.BrokenResourceError) as e:
+        except OSError as e:
             await self._close()
             msg = 'Could not connect to proxy {}:{} [{}]'.format(
                 self._proxy_host,
@@ -93,12 +86,15 @@ class AnyioProxy:
                 e.strerror,
             )
             raise ProxyConnectionError(e.errno, msg) from e
+        except trio.TooSlowError as e:
+            await self._close()
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
         except Exception:
             await self._close()
             raise
 
     async def _negotiate(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     async def _close(self):
         if self._stream is not None:
@@ -113,7 +109,7 @@ class AnyioProxy:
         return self._proxy_port
 
 
-class Socks5Proxy(AnyioProxy):
+class Socks5Proxy(TrioProxy):
     def __init__(
         self,
         proxy_host,
@@ -145,7 +141,7 @@ class Socks5Proxy(AnyioProxy):
         await proto.negotiate()
 
 
-class Socks4Proxy(AnyioProxy):
+class Socks4Proxy(TrioProxy):
     def __init__(
         self,
         proxy_host,
@@ -174,7 +170,7 @@ class Socks4Proxy(AnyioProxy):
         await proto.negotiate()
 
 
-class HttpProxy(AnyioProxy):
+class HttpProxy(TrioProxy):
     def __init__(
         self,
         proxy_host,
