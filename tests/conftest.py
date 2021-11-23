@@ -17,7 +17,7 @@ from tests.config import (
     TEST_HOST_KEY_FILE,
 )
 from tests.http_server import HttpServer, HttpServerConfig
-from tests.mocks import sync_resolve_factory, async_resolve_factory, getaddrinfo
+from tests.mocks import sync_resolve_factory, async_resolve_factory
 from tests.proxy_server import ProxyConfig, ProxyServer
 
 
@@ -26,10 +26,10 @@ def nullcontext():
     yield None
 
 
-@pytest.fixture(scope='session', autouse=True)
-def patch_socket_getaddrinfo():
-    with mock.patch('socket.getaddrinfo', side_effect=getaddrinfo):
-        yield None
+# @pytest.fixture(scope='session', autouse=True)
+# def patch_socket_getaddrinfo():
+#     with mock.patch('socket.getaddrinfo', side_effect=getaddrinfo):
+#         yield None
 
 
 @pytest.fixture(scope='session', autouse=True)

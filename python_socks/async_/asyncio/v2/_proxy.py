@@ -70,7 +70,6 @@ class AsyncioProxy:
                     reader, writer = await connect_tcp(
                         host=self._proxy_host,
                         port=self._proxy_port,
-                        loop=self._loop,
                     )
                     self._stream = AsyncioSocketStream(
                         loop=self._loop,

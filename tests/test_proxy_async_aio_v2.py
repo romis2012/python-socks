@@ -1,8 +1,9 @@
 import asyncio
 import ssl
+from unittest.mock import patch
 
-import pytest  # noqa
-from yarl import URL  # noqa
+import pytest
+from yarl import URL
 
 from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
 from python_socks.async_.asyncio._resolver import Resolver
@@ -25,49 +26,54 @@ from tests.config import (
     TEST_HOST_PEM_FILE,
     TEST_URL_IPV4_HTTPS,
 )
+from tests.mocks import getaddrinfo_async_mock
 
 
 async def make_request(proxy: AsyncioProxy, url: str, resolve_host=False, timeout=None):
     loop = asyncio.get_event_loop()
+    with patch.object(
+        loop,
+        attribute='getaddrinfo',
+        new=getaddrinfo_async_mock(loop.getaddrinfo),
+    ):
+        url = URL(url)
 
-    url = URL(url)
+        dest_host = url.host
+        if resolve_host:
+            resolver = Resolver(loop=loop)
+            _, dest_host = await resolver.resolve(url.host)
 
-    dest_host = url.host
-    if resolve_host:
-        resolver = Resolver(loop=loop)
-        _, dest_host = await resolver.resolve(url.host)
+        ssl_context = None
+        if url.scheme == 'https':
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
+            ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
 
-    ssl_context = None
-    if url.scheme == 'https':
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
-        ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
+        stream = await proxy.connect(
+            dest_host=dest_host, dest_port=url.port, dest_ssl=ssl_context, timeout=timeout
+        )
 
-    stream = await proxy.connect(
-        dest_host=dest_host, dest_port=url.port, dest_ssl=ssl_context, timeout=timeout
-    )
+        # fmt: off
+        request = (
+            'GET {rel_url} HTTP/1.1\r\n'
+            'Host: {host}\r\n'
+            'Connection: close\r\n\r\n'
+        )
+        # fmt: on
 
-    # fmt: off
-    request = (
-        'GET {rel_url} HTTP/1.1\r\n'
-        'Host: {host}\r\n'
-        'Connection: close\r\n\r\n'
-    )
-    # fmt: on
+        request = request.format(rel_url=url.path_qs, host=url.host)
+        request = request.encode('ascii')
 
-    request = request.format(rel_url=url.path_qs, host=url.host)
-    request = request.encode('ascii')
+        await stream.write_all(request)
 
-    await stream.write_all(request)
+        response = await stream.read(1024)
 
-    response = await stream.read(1024)
+        status_line = response.split(b'\r\n', 1)[0]
+        version, status_code, *reason = status_line.split()
 
-    status_line = response.split(b'\r\n', 1)[0]
-    version, status_code, *reason = status_line.split()
+        await stream.close()
 
-    await stream.close()
-
-    return int(status_code)
+        return int(status_code)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))

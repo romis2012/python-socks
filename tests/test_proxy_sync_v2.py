@@ -1,27 +1,37 @@
 import socket
 import ssl
+from unittest import mock
+
 from typing import Union
 
 import pytest
 from yarl import URL
 
-from python_socks import (
-    ProxyType,
-    ProxyError,
-    ProxyTimeoutError,
-    ProxyConnectionError
-)
+from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
 from python_socks.sync._resolver import SyncResolver
 from python_socks.sync.v2 import Proxy
 from python_socks.sync.v2 import ProxyChain
 from python_socks.sync.v2._proxy import SyncProxy
 
 from tests.config import (
-    PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
-    SOCKS5_IPV4_URL, SOCKS5_IPV4_URL_WO_AUTH, SOCKS5_IPV6_URL, SOCKS4_URL,
-    HTTP_PROXY_URL, HTTP_PROXY_PORT, TEST_URL_IPV4, TEST_URL_IPv6,
-    SOCKS5_IPV4_HOSTNAME_URL, TEST_HOST_PEM_FILE, TEST_URL_IPV4_HTTPS
+    PROXY_HOST_IPV4,
+    SOCKS5_PROXY_PORT,
+    LOGIN,
+    PASSWORD,
+    SKIP_IPV6_TESTS,
+    SOCKS5_IPV4_URL,
+    SOCKS5_IPV4_URL_WO_AUTH,
+    SOCKS5_IPV6_URL,
+    SOCKS4_URL,
+    HTTP_PROXY_URL,
+    HTTP_PROXY_PORT,
+    TEST_URL_IPV4,
+    TEST_URL_IPv6,
+    SOCKS5_IPV4_HOSTNAME_URL,
+    TEST_HOST_PEM_FILE,
+    TEST_URL_IPV4_HTTPS,
 )
+from tests.mocks import getaddrinfo_sync_mock
 
 
 def read_status_code(sock: socket.socket) -> int:
@@ -38,48 +48,48 @@ def make_request(
     resolve_host=False,
     timeout=None,
 ):
+    with mock.patch('socket.getaddrinfo', new=getaddrinfo_sync_mock()):
+        url = URL(url)
 
-    url = URL(url)
+        dest_host = url.host
+        if resolve_host:
+            resolver = SyncResolver()
+            _, dest_host = resolver.resolve(url.host)
 
-    dest_host = url.host
-    if resolve_host:
-        resolver = SyncResolver()
-        _, dest_host = resolver.resolve(url.host)
+        ssl_context = None
+        if url.scheme == 'https':
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
+            ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
 
-    ssl_context = None
-    if url.scheme == 'https':
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
-        ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
+        stream = proxy.connect(
+            dest_host=dest_host,
+            dest_port=url.port,
+            dest_ssl=ssl_context,
+            timeout=timeout,
+        )
 
-    stream = proxy.connect(
-        dest_host=dest_host,
-        dest_port=url.port,
-        dest_ssl=ssl_context,
-        timeout=timeout,
-    )
+        # fmt: off
+        request = (
+            'GET {rel_url} HTTP/1.1\r\n'
+            'Host: {host}\r\n'
+            'Connection: close\r\n\r\n'
+        )
+        # fmt: on
 
-    # fmt: off
-    request = (
-        'GET {rel_url} HTTP/1.1\r\n'
-        'Host: {host}\r\n'
-        'Connection: close\r\n\r\n'
-    )
-    # fmt: on
+        request = request.format(rel_url=url.path_qs, host=url.host)
+        request = request.encode('ascii')
 
-    request = request.format(rel_url=url.path_qs, host=url.host)
-    request = request.encode('ascii')
+        stream.write_all(request)
 
-    stream.write_all(request)
+        response = stream.read(1024)
 
-    response = stream.read(1024)
+        status_line = response.split(b'\r\n', 1)[0]
+        version, status_code, *reason = status_line.split()
 
-    status_line = response.split(b'\r\n', 1)[0]
-    version, status_code, *reason = status_line.split()
+        stream.close()
 
-    stream.close()
-
-    return int(status_code)
+        return int(status_code)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
@@ -87,17 +97,16 @@ def make_request(
 @pytest.mark.parametrize('resolve_host', (True, False))
 def test_socks5_proxy_ipv4(url, rdns, resolve_host):
     proxy = Proxy.from_url(SOCKS5_IPV4_URL, rdns=rdns)
-    status_code = make_request(
-        proxy=proxy,
-        url=url,
-        resolve_host=resolve_host
-    )
+    status_code = make_request(proxy=proxy, url=url, resolve_host=resolve_host)
     assert status_code == 200
 
 
 def test_socks5_proxy_hostname_ipv4():
     proxy = Proxy.from_url(SOCKS5_IPV4_HOSTNAME_URL)
-    status_code = make_request(proxy=proxy, url=TEST_URL_IPV4, )
+    status_code = make_request(
+        proxy=proxy,
+        url=TEST_URL_IPV4,
+    )
     assert status_code == 200
 
 
@@ -164,11 +173,7 @@ def test_socks5_proxy_hostname_ipv6(rdns):
 @pytest.mark.parametrize('resolve_host', (True, False))
 def test_socks4_proxy(url, rdns, resolve_host):
     proxy = Proxy.from_url(SOCKS4_URL, rdns=rdns)
-    status_code = make_request(
-        proxy=proxy,
-        url=url,
-        resolve_host=resolve_host
-    )
+    status_code = make_request(proxy=proxy, url=url, resolve_host=resolve_host)
     assert status_code == 200
 
 
@@ -193,10 +198,12 @@ def test_http_proxy_with_invalid_credentials():
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 def test_proxy_chain(url):
-    proxy = ProxyChain([
-        Proxy.from_url(SOCKS5_IPV4_URL),
-        Proxy.from_url(SOCKS4_URL),
-        Proxy.from_url(HTTP_PROXY_URL),
-    ])
+    proxy = ProxyChain(
+        [
+            Proxy.from_url(SOCKS5_IPV4_URL),
+            Proxy.from_url(SOCKS4_URL),
+            Proxy.from_url(HTTP_PROXY_URL),
+        ]
+    )
     status_code = make_request(proxy=proxy, url=TEST_URL_IPV4_HTTPS)
     assert status_code == 200

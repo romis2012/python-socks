@@ -2,11 +2,10 @@ import ssl
 from typing import Optional
 
 import pytest
-
+from unittest.mock import patch
 from yarl import URL
 
 from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
-from python_socks._abc import AsyncProxy
 from python_socks.async_ import ProxyChain
 from tests.config import (
     PROXY_HOST_IPV4,
@@ -24,62 +23,76 @@ from tests.config import (
     TEST_HOST_PEM_FILE,
     TEST_URL_IPV4_HTTPS,
 )
+from tests.mocks import getaddrinfo_async_mock
 
 curio = pytest.importorskip('curio')
+
 import curio.io  # noqa: E402
 import curio.ssl as curiossl  # noqa: E402
+import curio.socket  # noqa: E402
 from python_socks.async_.curio._resolver import Resolver  # noqa: E402
 from python_socks.async_.curio import Proxy  # noqa: E402
+from python_socks.async_.curio._proxy import CurioProxy  # noqa: E402
 
 
-async def make_request(proxy: AsyncProxy, url: str, resolve_host=False, timeout=None):
-    url = URL(url)
+async def make_request(
+    proxy: CurioProxy,
+    url: str,
+    resolve_host=False,
+    timeout=None,
+):
+    with patch(
+        'curio.socket.getaddrinfo',
+        new=getaddrinfo_async_mock(curio.socket.getaddrinfo),
+    ):
 
-    dest_host = url.host
-    if resolve_host:
-        resolver = Resolver()
-        _, dest_host = await resolver.resolve(url.host)
+        url = URL(url)
 
-    sock: curio.io.Socket = await proxy.connect(
-        dest_host=dest_host, dest_port=url.port, timeout=timeout
-    )
+        dest_host = url.host
+        if resolve_host:
+            resolver = Resolver()
+            _, dest_host = await resolver.resolve(url.host)
 
-    ssl_context: Optional[curiossl.CurioSSLContext] = None
-    if url.scheme == 'https':
-        _ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        _ssl_context.verify_mode = ssl.CERT_REQUIRED
-        _ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
-        ssl_context = curiossl.CurioSSLContext(_ssl_context)
-
-    if ssl_context is not None:
-        sock = await ssl_context.wrap_socket(
-            sock, do_handshake_on_connect=False, server_hostname=url.host
+        sock: curio.io.Socket = await proxy.connect(
+            dest_host=dest_host, dest_port=url.port, timeout=timeout
         )
 
-        await sock.do_handshake()
+        ssl_context: Optional[curiossl.CurioSSLContext] = None
+        if url.scheme == 'https':
+            _ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+            _ssl_context.verify_mode = ssl.CERT_REQUIRED
+            _ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
+            ssl_context = curiossl.CurioSSLContext(_ssl_context)
 
-    stream = sock.as_stream()
+        if ssl_context is not None:
+            sock = await ssl_context.wrap_socket(
+                sock, do_handshake_on_connect=False, server_hostname=url.host
+            )
 
-    # fmt: off
-    request = (
-        'GET {rel_url} HTTP/1.1\r\n'
-        'Host: {host}\r\n'
-        'Connection: close\r\n\r\n'
-    )
-    # fmt: on
+            await sock.do_handshake()
 
-    request = request.format(rel_url=url.path_qs, host=url.host)
-    request = request.encode('ascii')
+        stream = sock.as_stream()
 
-    await stream.write(request)
+        # fmt: off
+        request = (
+            'GET {rel_url} HTTP/1.1\r\n'
+            'Host: {host}\r\n'
+            'Connection: close\r\n\r\n'
+        )
+        # fmt: on
 
-    response = await stream.read(1024)
+        request = request.format(rel_url=url.path_qs, host=url.host)
+        request = request.encode('ascii')
 
-    status_line = response.split(b'\r\n', 1)[0]
-    status_line = status_line.decode('utf-8', 'surrogateescape')
-    version, status_code, *reason = status_line.split()
+        await stream.write(request)
 
-    return int(status_code)
+        response = await stream.read(1024)
+
+        status_line = response.split(b'\r\n', 1)[0]
+        status_line = status_line.decode('utf-8', 'surrogateescape')
+        version, status_code, *reason = status_line.split()
+
+        return int(status_code)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
