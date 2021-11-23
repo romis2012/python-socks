@@ -1,5 +1,6 @@
 import asyncio
 import ssl
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -86,6 +87,7 @@ async def test_socks5_proxy_ipv4(url, rdns, resolve_host):
     assert status_code == 200
 
 
+@pytest.mark.skipif(sys.version_info < (3, 7), reason="Buggy asyncio...")
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.asyncio
 async def test_socks5_proxy_hostname_ipv4(url):
