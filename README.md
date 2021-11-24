@@ -6,7 +6,7 @@
 [![Downloads](https://pepy.tech/badge/python-socks/month)](https://pepy.tech/project/python-socks)
 
 The `python-socks` package provides a core proxy client functionality for Python.
-Supports SOCKS4(a), SOCKS5, HTTP (tunneling) proxy and provides sync and async (asyncio, trio, curio) APIs.
+Supports SOCKS4(a), SOCKS5, HTTP (tunneling) proxy and provides sync and async (asyncio, trio, curio, anyio) APIs.
 You probably don't need to use `python-socks` directly. 
 It is used internally by 
 [aiohttp-socks](https://github.com/romis2012/aiohttp-socks) and [httpx-socks](https://github.com/romis2012/httpx-socks) packages.  
@@ -16,6 +16,7 @@ It is used internally by
 - async-timeout >= 3.0.1 (optional)
 - trio >= 0.16.0 (optional)
 - curio >= 1.4 (optional)
+- anyio >= 3.3.4 (optional)
 
 ## Installation
 
@@ -35,6 +36,11 @@ pip install python-socks[trio]
 ```
 
 to include optional curio support:
+```
+pip install python-socks[curio]
+```
+
+to include optional anyio support:
 ```
 pip install python-socks[curio]
 ```
@@ -158,6 +164,31 @@ stream = sock.as_stream()
 
 await stream.write(request)
 response = await stream.read(1024)
+print(response)
+```
+
+#### Async (anyio)
+```python
+import ssl
+from python_socks.async_.anyio import Proxy
+
+proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
+
+# `connect` returns AnyioSocketStream
+stream = await proxy.connect(
+    dest_host='check-host.net',
+    dest_port=443,
+    dest_ssl=ssl.create_default_context(),
+)
+
+request = (
+    b'GET /ip HTTP/1.1\r\n'
+    b'Host: check-host.net\r\n'
+    b'Connection: close\r\n\r\n'
+)
+
+await stream.write_all(request)
+response = await stream.read()
 print(response)
 ```
 
