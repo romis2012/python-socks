@@ -30,6 +30,7 @@ from tests.config import (
     SOCKS5_IPV4_HOSTNAME_URL,
     TEST_HOST_PEM_FILE,
     TEST_URL_IPV4_HTTPS,
+    HTTPS_PROXY_URL, PROXY_HOST_PEM_FILE,
 )
 from tests.mocks import getaddrinfo_sync_mock
 
@@ -180,6 +181,17 @@ def test_socks4_proxy(url, rdns, resolve_host):
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 def test_http_proxy(url):
     proxy = Proxy.from_url(HTTP_PROXY_URL)
+    status_code = make_request(proxy=proxy, url=url)
+    assert status_code == 200
+
+
+@pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
+def test_secure_proxy(url):
+    proxy_ssl = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    proxy_ssl.verify_mode = ssl.CERT_REQUIRED
+    proxy_ssl.load_verify_locations(PROXY_HOST_PEM_FILE)
+
+    proxy = Proxy.from_url(HTTPS_PROXY_URL, proxy_ssl=proxy_ssl)
     status_code = make_request(proxy=proxy, url=url)
     assert status_code == 200
 

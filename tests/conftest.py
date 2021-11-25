@@ -3,18 +3,29 @@ from unittest import mock
 
 import pytest
 
-# noinspection PyProtectedMember
 from python_socks.async_.asyncio._resolver import Resolver as AsyncioResolver
-# noinspection PyProtectedMember
+
 from python_socks.sync._resolver import SyncResolver
 from tests.config import (
-    PROXY_HOST_IPV4, PROXY_HOST_IPV6,
-    SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
+    PROXY_HOST_IPV4,
+    PROXY_HOST_IPV6,
+    SOCKS5_PROXY_PORT,
+    LOGIN,
+    PASSWORD,
+    SKIP_IPV6_TESTS,
     HTTP_PROXY_PORT,
-    SOCKS4_PORT_NO_AUTH, SOCKS4_PROXY_PORT,
-    SOCKS5_PROXY_PORT_NO_AUTH, TEST_PORT_IPV4, TEST_PORT_IPV6, TEST_HOST_IPV4,
-    TEST_HOST_IPV6, TEST_PORT_IPV4_HTTPS, TEST_HOST_CERT_FILE,
+    SOCKS4_PORT_NO_AUTH,
+    SOCKS4_PROXY_PORT,
+    SOCKS5_PROXY_PORT_NO_AUTH,
+    TEST_PORT_IPV4,
+    TEST_PORT_IPV6,
+    TEST_HOST_IPV4,
+    TEST_HOST_IPV6,
+    TEST_PORT_IPV4_HTTPS,
+    TEST_HOST_CERT_FILE,
     TEST_HOST_KEY_FILE,
+    PROXY_HOST_NAME_IPV4,
+    HTTPS_PROXY_PORT, PROXY_HOST_CERT_FILE, PROXY_HOST_KEY_FILE,
 )
 from tests.http_server import HttpServer, HttpServerConfig
 from tests.mocks import sync_resolve_factory, async_resolve_factory
@@ -35,15 +46,11 @@ def nullcontext():
 @pytest.fixture(scope='session', autouse=True)
 def patch_resolvers():
     p1 = mock.patch.object(
-        SyncResolver,
-        attribute='resolve',
-        new=sync_resolve_factory(SyncResolver)
+        SyncResolver, attribute='resolve', new=sync_resolve_factory(SyncResolver)
     )
 
     p2 = mock.patch.object(
-        AsyncioResolver,
-        attribute='resolve',
-        new=async_resolve_factory(AsyncioResolver)
+        AsyncioResolver, attribute='resolve', new=async_resolve_factory(AsyncioResolver)
     )
 
     try:
@@ -53,9 +60,7 @@ def patch_resolvers():
         p3 = nullcontext()
     else:
         p3 = mock.patch.object(
-            TrioResolver,
-            attribute='resolve',
-            new=async_resolve_factory(TrioResolver)
+            TrioResolver, attribute='resolve', new=async_resolve_factory(TrioResolver)
         )
 
     try:
@@ -65,9 +70,7 @@ def patch_resolvers():
         p4 = nullcontext()
     else:
         p4 = mock.patch.object(
-            CurioResolver,
-            attribute='resolve',
-            new=async_resolve_factory(CurioResolver)
+            CurioResolver, attribute='resolve', new=async_resolve_factory(CurioResolver)
         )
 
     try:
@@ -76,9 +79,7 @@ def patch_resolvers():
         p5 = nullcontext()
     else:
         p5 = mock.patch.object(
-            AnyioResolver,
-            attribute='resolve',
-            new=async_resolve_factory(AnyioResolver)
+            AnyioResolver, attribute='resolve', new=async_resolve_factory(AnyioResolver)
         )
 
     with p1, p2, p3, p4, p5:
@@ -93,35 +94,45 @@ def proxy_server():
             host=PROXY_HOST_IPV4,
             port=HTTP_PROXY_PORT,
             username=LOGIN,
-            password=PASSWORD
+            password=PASSWORD,
         ),
         ProxyConfig(
             proxy_type='socks4',
             host=PROXY_HOST_IPV4,
             port=SOCKS4_PROXY_PORT,
             username=LOGIN,
-            password=None
+            password=None,
         ),
         ProxyConfig(
             proxy_type='socks4',
             host=PROXY_HOST_IPV4,
             port=SOCKS4_PORT_NO_AUTH,
             username=None,
-            password=None
+            password=None,
         ),
         ProxyConfig(
             proxy_type='socks5',
             host=PROXY_HOST_IPV4,
             port=SOCKS5_PROXY_PORT,
             username=LOGIN,
-            password=PASSWORD
+            password=PASSWORD,
         ),
         ProxyConfig(
             proxy_type='socks5',
             host=PROXY_HOST_IPV4,
             port=SOCKS5_PROXY_PORT_NO_AUTH,
             username=None,
-            password=None
+            password=None,
+        ),
+        ProxyConfig(
+            proxy_type='http',
+            # host=PROXY_HOST_NAME_IPV4,
+            host=PROXY_HOST_IPV4,
+            port=HTTPS_PROXY_PORT,
+            username=LOGIN,
+            password=PASSWORD,
+            certfile=PROXY_HOST_CERT_FILE,
+            keyfile=PROXY_HOST_KEY_FILE,
         ),
     ]
 
@@ -132,7 +143,7 @@ def proxy_server():
                 host=PROXY_HOST_IPV6,
                 port=SOCKS5_PROXY_PORT,
                 username=LOGIN,
-                password=PASSWORD
+                password=PASSWORD,
             ),
         )
 
@@ -158,16 +169,11 @@ def web_server():
             port=TEST_PORT_IPV4_HTTPS,
             certfile=TEST_HOST_CERT_FILE,
             keyfile=TEST_HOST_KEY_FILE,
-        )
+        ),
     ]
 
     if not SKIP_IPV6_TESTS:
-        config.append(
-            HttpServerConfig(
-                host=TEST_HOST_IPV6,
-                port=TEST_PORT_IPV6
-            )
-        )
+        config.append(HttpServerConfig(host=TEST_HOST_IPV6, port=TEST_PORT_IPV6))
 
     server = HttpServer(config=config)
     server.start()

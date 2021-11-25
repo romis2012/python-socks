@@ -1,4 +1,5 @@
 import logging
+import ssl
 import sys
 import time
 import typing
@@ -6,11 +7,7 @@ from multiprocessing import Process
 from unittest import mock
 
 from tests.mocks import sync_resolve_factory
-from tests.tiny_proxy import (
-    HttpProxyServer,
-    Socks4ProxyServer,
-    Socks5ProxyServer
-)
+from tests.tiny_proxy import HttpProxyServer, Socks4ProxyServer, Socks5ProxyServer
 from tests.tiny_proxy.handlers import (
     Socks4ProxyHandler,
     Socks5ProxyHandler,
@@ -27,6 +24,8 @@ class ProxyConfig(typing.NamedTuple):
     port: int
     username: typing.Optional[str] = None
     password: typing.Optional[str] = None
+    certfile: typing.Optional[str] = None
+    keyfile: typing.Optional[str] = None
 
     def to_dict(self):
         d = {}
@@ -69,22 +68,36 @@ def connect_to_remote_factory(cls: typing.Type[BaseProxyHandler]):
     return new_connect_to_remote
 
 
-@mock.patch.object(HttpProxyHandler, attribute='connect_to_remote',
-                   new=connect_to_remote_factory(HttpProxyHandler))
-@mock.patch.object(Socks4ProxyHandler, attribute='connect_to_remote',
-                   new=connect_to_remote_factory(Socks4ProxyHandler))
-@mock.patch.object(Socks5ProxyHandler, attribute='connect_to_remote',
-                   new=connect_to_remote_factory(Socks5ProxyHandler))
-@mock.patch.object(Resolver, attribute='resolve',
-                   new=sync_resolve_factory(Resolver))
-def start(proxy_type, host, port, **kwargs):
+@mock.patch.object(
+    HttpProxyHandler,
+    attribute='connect_to_remote',
+    new=connect_to_remote_factory(HttpProxyHandler),
+)
+@mock.patch.object(
+    Socks4ProxyHandler,
+    attribute='connect_to_remote',
+    new=connect_to_remote_factory(Socks4ProxyHandler),
+)
+@mock.patch.object(
+    Socks5ProxyHandler,
+    attribute='connect_to_remote',
+    new=connect_to_remote_factory(Socks5ProxyHandler),
+)
+@mock.patch.object(Resolver, attribute='resolve', new=sync_resolve_factory(Resolver))
+def start(proxy_type, host, port, certfile=None, keyfile=None,  **kwargs):
     # configure_logging()
 
     cls = cls_map.get(proxy_type)
     if not cls:
         raise RuntimeError('Unsupported type: {}'.format(proxy_type))
 
-    with cls(host, port, **kwargs) as server:
+    if certfile is not None and keyfile is not None:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        ssl_context.load_cert_chain(certfile, keyfile)
+    else:
+        ssl_context = None
+
+    with cls(host, port, ssl_context=ssl_context, **kwargs) as server:
         server.serve_forever()
 
 
@@ -96,11 +109,18 @@ class ProxyServer:
         self.workers = []
 
     def start(self):
-        for proxy in self.config:
-            print('Starting {} proxy on {}:{}...'.format(
-                proxy.proxy_type, proxy.host, proxy.port))
+        for cfg in self.config:
+            print(
+                'Starting {} proxy on {}:{}; certfile={}, keyfile={}...'.format(
+                    cfg.proxy_type,
+                    cfg.host,
+                    cfg.port,
+                    cfg.certfile,
+                    cfg.keyfile,
+                )
+            )
 
-            p = Process(target=start, kwargs=proxy.to_dict())
+            p = Process(target=start, kwargs=cfg.to_dict())
             self.workers.append(p)
 
         for p in self.workers:
@@ -116,9 +136,9 @@ class ProxyServer:
             if count >= timeout:
                 self.terminate()
                 raise Exception(
-                    'The proxy server has not available '
-                    'by (%s, %s) in %d seconds'
-                    % (host, port, timeout))
+                    'The proxy server has not available by (%s, %s) in %d seconds'
+                    % (host, port, timeout)
+                )
             count += 1
             time.sleep(1)
         return True

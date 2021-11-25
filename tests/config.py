@@ -16,6 +16,7 @@ SOCKS4_PROXY_PORT = 7782
 SOCKS4_PORT_NO_AUTH = 7783
 
 HTTP_PROXY_PORT = 7784
+HTTPS_PROXY_PORT = 7785
 
 SKIP_IPV6_TESTS = 'SKIP_IPV6_TESTS' in os.environ
 
@@ -59,6 +60,13 @@ HTTP_PROXY_URL = 'http://{login}:{password}@{host}:{port}'.format(
     password=PASSWORD,
 )
 
+HTTPS_PROXY_URL = 'http://{login}:{password}@{host}:{port}'.format(
+    host=PROXY_HOST_NAME_IPV4,
+    port=HTTPS_PROXY_PORT,
+    login=LOGIN,
+    password=PASSWORD,
+)
+
 TEST_HOST_IPV4 = '127.0.0.1'
 TEST_HOST_IPV6 = '::1'
 
@@ -94,3 +102,8 @@ def resolve_path(path):
 TEST_HOST_CERT_FILE = resolve_path('./cert/test_host.crt')
 TEST_HOST_KEY_FILE = resolve_path('./cert/test_host.key')
 TEST_HOST_PEM_FILE = resolve_path('./cert/test_host.pem')
+
+
+PROXY_HOST_CERT_FILE = resolve_path('./cert/proxy_host.crt')
+PROXY_HOST_KEY_FILE = resolve_path('./cert/proxy_host.key')
+PROXY_HOST_PEM_FILE = resolve_path('./cert/proxy_host.pem')

@@ -52,5 +52,5 @@ class SyncSocketStream(abc.SyncSocketStream):
         self._socket.close()
 
     @property
-    def socket(self) -> SocketType:
+    def socket(self) -> SocketType:  # pragma: nocover
         return self._socket

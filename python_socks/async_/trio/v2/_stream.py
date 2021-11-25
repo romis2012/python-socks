@@ -51,5 +51,5 @@ class TrioSocketStream(abc.AsyncSocketStream):
         await self._stream.aclose()
 
     @property
-    def trio_stream(self) -> TrioStreamType:
+    def trio_stream(self) -> TrioStreamType:  # pragma: nocover
         return self._stream
