@@ -42,7 +42,7 @@ pip install python-socks[curio]
 
 to include optional anyio support:
 ```
-pip install python-socks[curio]
+pip install python-socks[anyio]
 ```
 
 ## Simple usage
