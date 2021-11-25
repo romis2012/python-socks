@@ -84,7 +84,7 @@ def connect_to_remote_factory(cls: typing.Type[BaseProxyHandler]):
     new=connect_to_remote_factory(Socks5ProxyHandler),
 )
 @mock.patch.object(Resolver, attribute='resolve', new=sync_resolve_factory(Resolver))
-def start(proxy_type, host, port, certfile=None, keyfile=None,  **kwargs):
+def start(proxy_type, host, port, certfile=None, keyfile=None, **kwargs):
     # configure_logging()
 
     cls = cls_map.get(proxy_type)

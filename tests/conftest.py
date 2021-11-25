@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 
 from python_socks.async_.asyncio._resolver import Resolver as AsyncioResolver
-
 from python_socks.sync._resolver import SyncResolver
 from tests.config import (
     PROXY_HOST_IPV4,
@@ -24,7 +23,6 @@ from tests.config import (
     TEST_PORT_IPV4_HTTPS,
     TEST_HOST_CERT_FILE,
     TEST_HOST_KEY_FILE,
-    PROXY_HOST_NAME_IPV4,
     HTTPS_PROXY_PORT, PROXY_HOST_CERT_FILE, PROXY_HOST_KEY_FILE,
 )
 from tests.http_server import HttpServer, HttpServerConfig
