@@ -47,7 +47,7 @@ def parse_proxy_url(url):
     parsed = urlparse(url)
 
     scheme = parsed.scheme
-    if scheme == 'socks5':
+    if scheme in {'socks5', 'socks5h'}:
         proxy_type = ProxyType.SOCKS5
     elif scheme == 'socks4':
         proxy_type = ProxyType.SOCKS4
