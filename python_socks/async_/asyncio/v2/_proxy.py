@@ -84,17 +84,6 @@ class AsyncioProxy:
                         hostname=self._proxy_host,
                         ssl_context=self._proxy_ssl,
                     )
-
-                await self._negotiate()
-
-                if self._dest_ssl is not None:
-                    self._stream = await self._stream.start_tls(
-                        hostname=self._dest_host,
-                        ssl_context=self._dest_ssl,
-                    )
-
-                return self._stream
-
             except OSError as e:
                 await self._close()
                 msg = 'Could not connect to proxy {}:{} [{}]'.format(
@@ -106,6 +95,20 @@ class AsyncioProxy:
             except (asyncio.CancelledError, Exception):
                 await self._close()
                 raise
+
+            try:
+                await self._negotiate()
+
+                if self._dest_ssl is not None:
+                    self._stream = await self._stream.start_tls(
+                        hostname=self._dest_host,
+                        ssl_context=self._dest_ssl,
+                    )
+            except (asyncio.CancelledError, Exception):
+                await self._close()
+                raise
+
+            return self._stream
 
     async def _negotiate(self):
         raise NotImplementedError()
