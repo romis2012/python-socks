@@ -90,7 +90,7 @@ class AnyioProxy:
             msg = 'Could not connect to proxy {}:{} [{}]'.format(
                 self._proxy_host,
                 self._proxy_port,
-                e.strerror,
+                getattr(e, "strerror", str(e)),
             )
             raise ProxyConnectionError(e.errno, msg) from e
         except Exception:
