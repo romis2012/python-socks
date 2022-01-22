@@ -85,12 +85,12 @@ class AnyioProxy:
         except TimeoutError as e:
             await self._close()
             raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
-        except (OSError, anyio.BrokenResourceError) as e:
+        except OSError as e:
             await self._close()
             msg = 'Could not connect to proxy {}:{} [{}]'.format(
                 self._proxy_host,
                 self._proxy_port,
-                getattr(e, "strerror", str(e)),
+                e.strerror,
             )
             raise ProxyConnectionError(e.errno, msg) from e
         except Exception:
