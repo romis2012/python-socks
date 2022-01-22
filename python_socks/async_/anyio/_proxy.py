@@ -92,7 +92,7 @@ class AnyioProxy:
                 self._proxy_port,
                 getattr(e, "strerror", str(e)),
             )
-            raise ProxyConnectionError(e.errno, msg) from e
+            raise ProxyConnectionError(getattr(e, "errno", -1), msg) from e
         except Exception:
             await self._close()
             raise
