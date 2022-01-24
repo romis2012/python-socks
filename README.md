@@ -8,7 +8,7 @@
 -->
 
 The `python-socks` package provides a core proxy client functionality for Python.
-Supports SOCKS4(a), SOCKS5, HTTP (tunneling) proxy and provides sync and async (asyncio, trio, curio, anyio) APIs.
+Supports SOCKS4(a), SOCKS5(h), HTTP (tunneling) proxy and provides sync and async (asyncio, trio, curio, anyio) APIs.
 You probably don't need to use `python-socks` directly. 
 It is used internally by 
 [aiohttp-socks](https://github.com/romis2012/aiohttp-socks) and [httpx-socks](https://github.com/romis2012/httpx-socks) packages.  
