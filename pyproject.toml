@@ -4,3 +4,6 @@ target-version = ['py37', 'py38', 'py39']
 skip-string-normalization = true
 experimental-string-processing = true
 verbose = true
+
+[tool.pytest.ini_options]
+asyncio_mode = 'strict'
