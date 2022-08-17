@@ -28,6 +28,7 @@ from tests.config import (
 from tests.http_server import HttpServer, HttpServerConfig
 from tests.mocks import sync_resolve_factory, async_resolve_factory
 from tests.proxy_server import ProxyConfig, ProxyServer
+from tests.utils import wait_until_connectable
 
 
 @contextmanager
@@ -129,8 +130,8 @@ def proxy_server():
             port=HTTPS_PROXY_PORT,
             username=LOGIN,
             password=PASSWORD,
-            certfile=PROXY_HOST_CERT_FILE,
-            keyfile=PROXY_HOST_KEY_FILE,
+            ssl_certfile=PROXY_HOST_CERT_FILE,
+            ssl_keyfile=PROXY_HOST_KEY_FILE,
         ),
     ]
 
@@ -148,7 +149,7 @@ def proxy_server():
     server = ProxyServer(config=config)
     server.start()
     for cfg in config:
-        server.wait_until_connectable(host=cfg.host, port=cfg.port)
+        wait_until_connectable(host=cfg.host, port=cfg.port, timeout=10)
 
     yield None
 

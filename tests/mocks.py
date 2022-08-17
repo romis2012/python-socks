@@ -24,7 +24,6 @@ def getaddrinfo_sync_mock():
 
 
 def getaddrinfo_async_mock(origin_getaddrinfo):
-
     async def getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
         if host in (TEST_HOST_NAME_IPV4, PROXY_HOST_NAME_IPV4):
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', port))]
@@ -32,7 +31,14 @@ def getaddrinfo_async_mock(origin_getaddrinfo):
         if host in (TEST_HOST_NAME_IPV6, PROXY_HOST_NAME_IPV6):
             return [(socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('::1', port, 0, 0))]
 
-        return await origin_getaddrinfo(host, port, family, type, proto, flags)
+        return await origin_getaddrinfo(
+            host,
+            port,
+            family=family,
+            type=type,
+            proto=proto,
+            flags=flags,
+        )
 
     return getaddrinfo
 

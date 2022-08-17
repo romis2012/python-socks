@@ -11,3 +11,4 @@ anyio>=3.3.4,<4.0.0
 yarl>=1.4.2
 async-timeout>=3.0.1
 flask>=1.1.2
+tiny-proxy>=0.1.1
