@@ -1,8 +1,7 @@
-import ssl
 from typing import Optional
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from yarl import URL
 
 from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
@@ -20,7 +19,6 @@ from tests.config import (
     HTTP_PROXY_URL,
     TEST_URL_IPV4,
     SOCKS5_IPV4_HOSTNAME_URL,
-    TEST_HOST_PEM_FILE,
     TEST_URL_IPV4_HTTPS,
 )
 from tests.mocks import getaddrinfo_async_mock
@@ -40,12 +38,12 @@ async def make_request(
     url: str,
     resolve_host=False,
     timeout=None,
+    ssl_context=None,
 ):
     with patch(
         'curio.socket.getaddrinfo',
         new=getaddrinfo_async_mock(curio.socket.getaddrinfo),
     ):
-
         url = URL(url)
 
         dest_host = url.host
@@ -57,16 +55,15 @@ async def make_request(
             dest_host=dest_host, dest_port=url.port, timeout=timeout
         )
 
-        ssl_context: Optional[curiossl.CurioSSLContext] = None
+        dest_ssl: Optional[curiossl.CurioSSLContext] = None
         if url.scheme == 'https':
-            _ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-            _ssl_context.verify_mode = ssl.CERT_REQUIRED
-            _ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
-            ssl_context = curiossl.CurioSSLContext(_ssl_context)
+            dest_ssl = curiossl.CurioSSLContext(ssl_context)
 
-        if ssl_context is not None:
-            sock = await ssl_context.wrap_socket(
-                sock, do_handshake_on_connect=False, server_hostname=url.host
+        if dest_ssl is not None:
+            sock = await dest_ssl.wrap_socket(
+                sock,
+                do_handshake_on_connect=False,
+                server_hostname=url.host,
             )
 
             await sock.do_handshake()
@@ -98,22 +95,28 @@ async def make_request(
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.parametrize('rdns', (True, False))
 @pytest.mark.parametrize('resolve_host', (True, False))
-def test_socks5_proxy_ipv4(url, rdns, resolve_host):
+def test_socks5_proxy_ipv4(url, rdns, resolve_host, target_ssl_context):
     async def main():
         proxy = Proxy.from_url(SOCKS5_IPV4_URL, rdns=rdns)
-        status_code = await make_request(proxy=proxy, url=url, resolve_host=resolve_host)
+        status_code = await make_request(
+            proxy=proxy,
+            url=url,
+            resolve_host=resolve_host,
+            ssl_context=target_ssl_context,
+        )
         assert status_code == 200
 
     curio.run(main)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
-def test_socks5_proxy_hostname_ipv4(url):
+def test_socks5_proxy_hostname_ipv4(url, target_ssl_context):
     async def main():
         proxy = Proxy.from_url(SOCKS5_IPV4_HOSTNAME_URL)
         status_code = await make_request(
             proxy=proxy,
             url=url,
+            ssl_context=target_ssl_context,
         )
         assert status_code == 200
 
@@ -122,10 +125,14 @@ def test_socks5_proxy_hostname_ipv4(url):
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.parametrize('rdns', (None, True, False))
-def test_socks5_proxy_ipv4_with_auth_none(url, rdns):
+def test_socks5_proxy_ipv4_with_auth_none(url, rdns, target_ssl_context):
     async def main():
         proxy = Proxy.from_url(SOCKS5_IPV4_URL_WO_AUTH, rdns=rdns)
-        status_code = await make_request(proxy=proxy, url=url)
+        status_code = await make_request(
+            proxy=proxy,
+            url=url,
+            ssl_context=target_ssl_context,
+        )
         assert status_code == 200
 
     curio.run(main)
@@ -178,10 +185,14 @@ def test_socks5_proxy_with_invalid_proxy_port(unused_tcp_port):
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.skipif(SKIP_IPV6_TESTS, reason="TravisCI doesn't support ipv6")
-def test_socks5_proxy_ipv6(url):
+def test_socks5_proxy_ipv6(url, target_ssl_context):
     async def main():
         proxy = Proxy.from_url(SOCKS5_IPV6_URL)
-        status_code = await make_request(proxy=proxy, url=url)
+        status_code = await make_request(
+            proxy=proxy,
+            url=url,
+            ssl_context=target_ssl_context,
+        )
         assert status_code == 200
 
     curio.run(main)
@@ -190,27 +201,36 @@ def test_socks5_proxy_ipv6(url):
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.parametrize('rdns', (None, True, False))
 @pytest.mark.parametrize('resolve_host', (True, False))
-def test_socks4_proxy(url, rdns, resolve_host):
+def test_socks4_proxy(url, rdns, resolve_host, target_ssl_context):
     async def main():
         proxy = Proxy.from_url(SOCKS4_URL, rdns=rdns)
-        status_code = await make_request(proxy=proxy, url=url, resolve_host=resolve_host)
+        status_code = await make_request(
+            proxy=proxy,
+            url=url,
+            resolve_host=resolve_host,
+            ssl_context=target_ssl_context,
+        )
         assert status_code == 200
 
     curio.run(main)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
-def test_http_proxy(url):
+def test_http_proxy(url, target_ssl_context):
     async def main():
         proxy = Proxy.from_url(HTTP_PROXY_URL)
-        status_code = await make_request(proxy=proxy, url=url)
+        status_code = await make_request(
+            proxy=proxy,
+            url=url,
+            ssl_context=target_ssl_context,
+        )
         assert status_code == 200
 
     curio.run(main)
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
-def test_proxy_chain(url):
+def test_proxy_chain(url, target_ssl_context):
     async def main():
         proxy = ProxyChain(
             [
@@ -219,8 +239,11 @@ def test_proxy_chain(url):
                 Proxy.from_url(HTTP_PROXY_URL),
             ]
         )
-        # noinspection PyTypeChecker
-        status_code = await make_request(proxy=proxy, url=url)
+        status_code = await make_request(
+            proxy=proxy,  # type: ignore
+            url=url,
+            ssl_context=target_ssl_context,
+        )
         assert status_code == 200
 
     curio.run(main)

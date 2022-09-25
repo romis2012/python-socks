@@ -1,33 +1,38 @@
-import socket
-import ssl
 import asyncio
+import socket
 
 import pytest  # noqa
 from yarl import URL  # noqa
 
-from python_socks import (
-    ProxyType,
-    ProxyError,
-    ProxyTimeoutError,
-    ProxyConnectionError
-)
-
+from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
 from python_socks._abc import AsyncProxy
-from python_socks.async_.asyncio import Proxy
 from python_socks.async_ import ProxyChain
-# noinspection PyUnresolvedReferences,PyProtectedMember
+from python_socks.async_.asyncio import Proxy
 from python_socks.async_.asyncio._resolver import Resolver
-
 from tests.config import (
-    PROXY_HOST_IPV4, SOCKS5_PROXY_PORT, LOGIN, PASSWORD, SKIP_IPV6_TESTS,
-    SOCKS5_IPV4_URL, SOCKS5_IPV4_URL_WO_AUTH, SOCKS5_IPV6_URL, SOCKS4_URL,
-    HTTP_PROXY_URL, TEST_URL_IPV4, SOCKS5_IPV4_HOSTNAME_URL,
-    TEST_HOST_PEM_FILE, TEST_URL_IPV4_HTTPS
+    PROXY_HOST_IPV4,
+    SOCKS5_PROXY_PORT,
+    LOGIN,
+    PASSWORD,
+    SKIP_IPV6_TESTS,
+    SOCKS5_IPV4_URL,
+    SOCKS5_IPV4_URL_WO_AUTH,
+    SOCKS5_IPV6_URL,
+    SOCKS4_URL,
+    HTTP_PROXY_URL,
+    TEST_URL_IPV4,
+    SOCKS5_IPV4_HOSTNAME_URL,
+    TEST_URL_IPV4_HTTPS,
 )
 
 
-async def make_request(proxy: AsyncProxy,
-                       url: str, resolve_host=False, timeout=None):
+async def make_request(
+    proxy: AsyncProxy,
+    url: str,
+    resolve_host=False,
+    timeout=None,
+    ssl_context=None,
+):
     loop = asyncio.get_event_loop()
 
     url = URL(url)
@@ -38,31 +43,24 @@ async def make_request(proxy: AsyncProxy,
         _, dest_host = await resolver.resolve(url.host)
 
     sock: socket.socket = await proxy.connect(
-        dest_host=dest_host,
-        dest_port=url.port,
-        timeout=timeout
+        dest_host=dest_host, dest_port=url.port, timeout=timeout
     )
 
-    ssl_context = None
     if url.scheme == 'https':
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
-        ssl_context.load_verify_locations(TEST_HOST_PEM_FILE)
+        dest_ssl = ssl_context
+    else:
+        dest_ssl = None
 
     # noinspection PyTypeChecker
     reader, writer = await asyncio.open_connection(
         host=None,
         port=None,
         sock=sock,
-        ssl=ssl_context,
-        server_hostname=url.host if ssl_context else None,
+        ssl=dest_ssl,
+        server_hostname=url.host if dest_ssl else None,
     )
 
-    request = (
-        'GET {rel_url} HTTP/1.1\r\n'
-        'Host: {host}\r\n'
-        'Connection: close\r\n\r\n'
-    )
+    request = 'GET {rel_url} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n'
     request = request.format(rel_url=url.path_qs, host=url.host)
     request = request.encode('ascii')
 
@@ -80,30 +78,39 @@ async def make_request(proxy: AsyncProxy,
 @pytest.mark.parametrize('rdns', (True, False))
 @pytest.mark.parametrize('resolve_host', (True, False))
 @pytest.mark.asyncio
-async def test_socks5_proxy_ipv4(url, rdns, resolve_host):
+async def test_socks5_proxy_ipv4(url, rdns, resolve_host, target_ssl_context):
     proxy = Proxy.from_url(SOCKS5_IPV4_URL, rdns=rdns)
     status_code = await make_request(
         proxy=proxy,
         url=url,
-        resolve_host=resolve_host
+        resolve_host=resolve_host,
+        ssl_context=target_ssl_context,
     )
     assert status_code == 200
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.asyncio
-async def test_socks5_proxy_hostname_ipv4(url):
+async def test_socks5_proxy_hostname_ipv4(url, target_ssl_context):
     proxy = Proxy.from_url(SOCKS5_IPV4_HOSTNAME_URL)
-    status_code = await make_request(proxy=proxy, url=url)
+    status_code = await make_request(
+        proxy=proxy,
+        url=url,
+        ssl_context=target_ssl_context,
+    )
     assert status_code == 200
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.parametrize('rdns', (None, True, False))
 @pytest.mark.asyncio
-async def test_socks5_proxy_ipv4_with_auth_none(url, rdns):
+async def test_socks5_proxy_ipv4_with_auth_none(url, rdns, target_ssl_context):
     proxy = Proxy.from_url(SOCKS5_IPV4_URL_WO_AUTH, rdns=rdns)
-    status_code = await make_request(proxy=proxy, url=url)
+    status_code = await make_request(
+        proxy=proxy,
+        url=url,
+        ssl_context=target_ssl_context,
+    )
     assert status_code == 200
 
 
@@ -149,9 +156,13 @@ async def test_socks5_proxy_with_invalid_proxy_port(unused_tcp_port):
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.skipif(SKIP_IPV6_TESTS, reason="TravisCI doesn't support ipv6")
 @pytest.mark.asyncio
-async def test_socks5_proxy_ipv6(url):
+async def test_socks5_proxy_ipv6(url, target_ssl_context):
     proxy = Proxy.from_url(SOCKS5_IPV6_URL)
-    status_code = await make_request(proxy=proxy, url=url)
+    status_code = await make_request(
+        proxy=proxy,
+        url=url,
+        ssl_context=target_ssl_context,
+    )
     assert status_code == 200
 
 
@@ -159,32 +170,43 @@ async def test_socks5_proxy_ipv6(url):
 @pytest.mark.parametrize('rdns', (None, True, False))
 @pytest.mark.parametrize('resolve_host', (True, False))
 @pytest.mark.asyncio
-async def test_socks4_proxy(url, rdns, resolve_host):
+async def test_socks4_proxy(url, rdns, resolve_host, target_ssl_context):
     proxy = Proxy.from_url(SOCKS4_URL, rdns=rdns)
     status_code = await make_request(
         proxy=proxy,
         url=url,
-        resolve_host=resolve_host
+        resolve_host=resolve_host,
+        ssl_context=target_ssl_context,
     )
     assert status_code == 200
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.asyncio
-async def test_http_proxy(url):
+async def test_http_proxy(url, target_ssl_context):
     proxy = Proxy.from_url(HTTP_PROXY_URL)
-    status_code = await make_request(proxy=proxy, url=url)
+    status_code = await make_request(
+        proxy=proxy,
+        url=url,
+        ssl_context=target_ssl_context,
+    )
     assert status_code == 200
 
 
 @pytest.mark.parametrize('url', (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.asyncio
-async def test_proxy_chain(url):
-    proxy = ProxyChain([
-        Proxy.from_url(SOCKS5_IPV4_URL),
-        Proxy.from_url(SOCKS4_URL),
-        Proxy.from_url(HTTP_PROXY_URL),
-    ])
+async def test_proxy_chain(url, target_ssl_context):
+    proxy = ProxyChain(
+        [
+            Proxy.from_url(SOCKS5_IPV4_URL),
+            Proxy.from_url(SOCKS4_URL),
+            Proxy.from_url(HTTP_PROXY_URL),
+        ]
+    )
     # noinspection PyTypeChecker
-    status_code = await make_request(proxy=proxy, url=url)
+    status_code = await make_request(
+        proxy=proxy,
+        url=url,
+        ssl_context=target_ssl_context,
+    )
     assert status_code == 200
