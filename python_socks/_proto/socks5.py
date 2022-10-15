@@ -65,7 +65,7 @@ class AuthMethodsRequest:
     def __init__(self, username: str, password: str):
         auth_methods = bytearray([AuthMethod.ANONYMOUS])
 
-        if username and password:
+        if username:
             auth_methods.append(AuthMethod.USERNAME_PASSWORD)
 
         self.auth_methods = auth_methods
