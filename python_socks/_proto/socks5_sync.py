@@ -1,7 +1,9 @@
 import socket
+from ipaddress import IPv4Address, IPv6Address
 
 from .socks5 import (
     AuthMethod,
+    AddressType,
     AuthMethodsRequest,
     AuthMethodsResponse,
     AuthRequest,
@@ -10,6 +12,7 @@ from .socks5 import (
     ConnectResponse,
 )
 from .. import _abc as abc
+from .._errors import ProxyError
 
 
 class Socks5Proto:
@@ -23,7 +26,6 @@ class Socks5Proto:
         password=None,
         rdns=None,
     ):
-
         if rdns is None:
             rdns = True
 
@@ -73,5 +75,26 @@ class Socks5Proto:
         res = ConnectResponse(self._stream.read_exact(3))
         res.validate()
 
-        # read remaining data (bind address)
-        self._stream.read()
+        # read remaining data (server bound address)
+        # self._stream.read()
+        self._read_bound_address()
+
+    def _read_bound_address(self):
+        addr_type, *_ = self._stream.read_exact(1)
+        if addr_type == AddressType.IPV4:
+            host = self._stream.read_exact(4)
+            host = str(IPv4Address(bytes(host)))
+        elif addr_type == AddressType.IPV6:
+            host = self._stream.read_exact(16)
+            host = str(IPv6Address(bytes(host)))
+        elif addr_type == AddressType.DOMAIN:  # pragma: no cover
+            host_len, *_ = self._stream.read_exact(1)
+            host = self._stream.read_exact(host_len)
+            host = host.decode('ascii')
+        else:  # pragma: no cover
+            raise ProxyError('Invalid address type: {:#02X}'.format(addr_type))
+
+        port = self._stream.read_exact(2)
+        port = int.from_bytes(port, 'big')
+
+        return host, port
