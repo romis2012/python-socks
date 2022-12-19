@@ -23,7 +23,7 @@ from tests.config import (
     HTTP_PROXY_URL,
     TEST_URL_IPV4,
     SOCKS5_IPV4_HOSTNAME_URL,
-    TEST_URL_IPV4_HTTPS,
+    TEST_URL_IPV4_HTTPS, TEST_URL_IPv6,
 )
 from tests.mocks import getaddrinfo_async_mock
 
@@ -169,6 +169,15 @@ async def test_socks5_proxy_ipv6(url, target_ssl_context):
         url=url,
         ssl_context=target_ssl_context,
     )
+    assert status_code == 200
+
+
+@pytest.mark.skipif(SKIP_IPV6_TESTS, reason="TravisCI doesn't support ipv6")
+@pytest.mark.parametrize('rdns', (True, False))
+@pytest.mark.asyncio
+async def test_socks5_proxy_hostname_ipv6(rdns):
+    proxy = Proxy.from_url(SOCKS5_IPV4_URL, rdns=rdns)
+    status_code = await make_request(proxy=proxy, url=TEST_URL_IPv6)
     assert status_code == 200
 
 

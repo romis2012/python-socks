@@ -1,5 +1,4 @@
 import socket
-from ipaddress import IPv4Address, IPv6Address
 
 from .socks5 import (
     AuthMethod,
@@ -91,14 +90,14 @@ class Socks5Proto:
         addr_type, *_ = await self._stream.read_exact(1)
         if addr_type == AddressType.IPV4:
             host = await self._stream.read_exact(4)
-            host = str(IPv4Address(bytes(host)))
-        elif addr_type == AddressType.IPV6:  # pragma: no cover
+            host = socket.inet_ntop(socket.AF_INET, host)
+        elif addr_type == AddressType.IPV6:
             host = await self._stream.read_exact(16)
-            host = str(IPv6Address(bytes(host)))
+            host = socket.inet_ntop(socket.AF_INET6, host)
         elif addr_type == AddressType.DOMAIN:  # pragma: no cover
             host_len, *_ = await self._stream.read_exact(1)
             host = await self._stream.read_exact(host_len)
-            host = host.decode('ascii')
+            host = host.decode()
         else:  # pragma: no cover
             raise ProxyError('Invalid address type: {:#02X}'.format(addr_type))
 
