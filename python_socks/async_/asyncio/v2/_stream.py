@@ -17,7 +17,7 @@ async def backport_start_tls(
     ssl_handshake_timeout=None,
 ):  # pragma: no cover
     """
-    Python 3.6 asyncio doesn't have a start_tls() method on the loop
+    Python 3.6 asyncio doesn't have a start_tls() method on the loop,
     so we use this function in place of the loop's start_tls() method.
     Adapted from this comment:
     https://github.com/urllib3/urllib3/issues/1323#issuecomment-362494839
