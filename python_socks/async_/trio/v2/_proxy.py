@@ -2,35 +2,30 @@ import ssl
 
 import trio
 
+from ._connect import connect_tcp
+from ._stream import TrioSocketStream
+from .._resolver import Resolver
 from ...._errors import ProxyConnectionError, ProxyTimeoutError
 from ...._proto.http_async import HttpProto
 from ...._proto.socks4_async import Socks4Proto
 from ...._proto.socks5_async import Socks5Proto
-from .._resolver import Resolver
-from ._stream import TrioSocketStream
-from ._connect import connect_tcp
-from .... import _abc as abc
 
 DEFAULT_TIMEOUT = 60
 
 
-class TrioProxy(abc.AsyncProxy):
+class TrioProxy:
     def __init__(
         self,
         proxy_host: str,
         proxy_port: int,
         proxy_ssl: ssl.SSLContext = None,
+        forward: 'TrioProxy' = None,
     ):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
         self._proxy_ssl = proxy_ssl
+        self._forward = forward
 
-        self._dest_host = None
-        self._dest_port = None
-        self._dest_ssl = None
-        self._timeout = None
-
-        self._stream = None
         self._resolver = Resolver()
 
     async def connect(
@@ -39,74 +34,74 @@ class TrioProxy(abc.AsyncProxy):
         dest_port: int,
         dest_ssl: ssl.SSLContext = None,
         timeout: float = None,
-        _stream: TrioSocketStream = None,
     ) -> TrioSocketStream:
-
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        self._dest_host = dest_host
-        self._dest_port = dest_port
-        self._dest_ssl = dest_ssl
-        self._timeout = timeout
+        try:
+            with trio.fail_after(timeout):
+                return await self._connect(
+                    dest_host=dest_host,
+                    dest_port=dest_port,
+                    dest_ssl=dest_ssl,
+                )
+        except trio.TooSlowError as e:
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+
+    async def _connect(
+        self,
+        dest_host: str,
+        dest_port: int,
+        dest_ssl: ssl.SSLContext = None,
+    ) -> TrioSocketStream:
+        try:
+            if self._forward is None:
+                stream = await connect_tcp(
+                    host=self._proxy_host,
+                    port=self._proxy_port,
+                )
+            else:
+                stream = await self._forward.connect(
+                    dest_host=self._proxy_host,
+                    dest_port=self._proxy_port,
+                )
+        except OSError as e:
+            raise ProxyConnectionError(
+                e.errno,
+                f"Couldn't connect to proxy {self._proxy_host}:{self._proxy_port} [{e.strerror}]",
+            ) from e
 
         try:
-            with trio.fail_after(self._timeout):
-                if _stream is None:
-                    self._stream = TrioSocketStream(
-                        await connect_tcp(
-                            host=self._proxy_host,
-                            port=self._proxy_port,
-                        )
-                    )
-                else:
-                    self._stream = _stream
+            if self._proxy_ssl is not None:
+                stream = await stream.start_tls(
+                    hostname=self._proxy_host,
+                    ssl_context=self._proxy_ssl,
+                )
 
-                if self._proxy_ssl is not None:
-                    self._stream = await self._stream.start_tls(
-                        hostname=self._proxy_host,
-                        ssl_context=self._proxy_ssl,
-                    )
-
-                await self._negotiate()
-
-                if self._dest_ssl is not None:
-                    self._stream = await self._stream.start_tls(
-                        hostname=self._dest_host,
-                        ssl_context=self._dest_ssl,
-                    )
-
-                return self._stream
-
-        except OSError as e:
-            await self._close()
-            msg = 'Could not connect to proxy {}:{} [{}]'.format(
-                self._proxy_host,
-                self._proxy_port,
-                e.strerror,
+            await self._negotiate(
+                stream=stream,
+                dest_host=dest_host,
+                dest_port=dest_port,
             )
-            raise ProxyConnectionError(e.errno, msg) from e
-        except trio.TooSlowError as e:
-            await self._close()
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
+
+            if dest_ssl is not None:
+                stream = await stream.start_tls(
+                    hostname=dest_host,
+                    ssl_context=dest_ssl,
+                )
         except Exception:
-            await self._close()
+            await stream.close()
             raise
 
-    async def _negotiate(self):
+        return stream
+
+    async def _negotiate(
+        self,
+        stream: TrioSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         raise NotImplementedError
-
-    async def _close(self):
-        if self._stream is not None:
-            await self._stream.close()
-
-    @property
-    def proxy_host(self):
-        return self._proxy_host
-
-    @property
-    def proxy_port(self):
-        return self._proxy_port
 
 
 class Socks5Proxy(TrioProxy):
@@ -128,12 +123,17 @@ class Socks5Proxy(TrioProxy):
         self._password = password
         self._rdns = rdns
 
-    async def _negotiate(self):
+    async def _negotiate(
+        self,
+        stream: TrioSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         proto = Socks5Proto(
-            stream=self._stream,
+            stream=stream,
             resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+            dest_host=dest_host,
+            dest_port=dest_port,
             username=self._username,
             password=self._password,
             rdns=self._rdns,
@@ -158,12 +158,17 @@ class Socks4Proxy(TrioProxy):
         self._user_id = user_id
         self._rdns = rdns
 
-    async def _negotiate(self):
+    async def _negotiate(
+        self,
+        stream: TrioSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         proto = Socks4Proto(
-            stream=self._stream,
+            stream=stream,
             resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+            dest_host=dest_host,
+            dest_port=dest_port,
             user_id=self._user_id,
             rdns=self._rdns,
         )
@@ -187,11 +192,16 @@ class HttpProxy(TrioProxy):
         self._username = username
         self._password = password
 
-    async def _negotiate(self):
+    async def _negotiate(
+        self,
+        stream: TrioSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         proto = HttpProto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+            stream=stream,
+            dest_host=dest_host,
+            dest_port=dest_port,
             username=self._username,
             password=self._password,
         )
