@@ -1,5 +1,6 @@
 import asyncio
 import ssl
+import warnings
 
 import async_timeout
 
@@ -24,8 +25,15 @@ class AsyncioProxy:
         forward: 'AsyncioProxy' = None,
         loop: asyncio.AbstractEventLoop = None,
     ):
+        if loop is not None:
+            warnings.warn(
+                'The loop argument is deprecated and scheduled for removal in the future.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if loop is None:
-            loop = asyncio.get_running_loop()
+            loop = asyncio.get_event_loop()
 
         self._loop = loop
 
