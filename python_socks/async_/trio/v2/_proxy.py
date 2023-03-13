@@ -89,8 +89,9 @@ class TrioProxy:
                     hostname=dest_host,
                     ssl_context=dest_ssl,
                 )
-        except Exception:
-            await stream.close()
+        except BaseException:  # trio.Cancelled...
+            with trio.CancelScope(shield=True):
+                await stream.close()
             raise
 
         return stream
