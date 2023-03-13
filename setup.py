@@ -49,6 +49,7 @@ setup(
         'python_socks.async_.trio.v2',
         'python_socks.async_.curio',
         'python_socks.async_.anyio',
+        'python_socks.async_.anyio.v2',
     ],
     keywords='socks socks5 socks4 http proxy asyncio trio curio anyio',
     extras_require={
