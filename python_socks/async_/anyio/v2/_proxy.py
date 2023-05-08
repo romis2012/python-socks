@@ -114,11 +114,13 @@ class Socks5Proxy(AnyioProxy):
         password=None,
         rdns=None,
         proxy_ssl=None,
+        forward: 'AnyioProxy' = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
+            forward=forward,
         )
         self._username = username
         self._password = password
@@ -150,11 +152,13 @@ class Socks4Proxy(AnyioProxy):
         user_id=None,
         rdns=None,
         proxy_ssl=None,
+        forward: 'AnyioProxy' = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
+            forward=forward,
         )
         self._user_id = user_id
         self._rdns = rdns
@@ -184,11 +188,13 @@ class HttpProxy(AnyioProxy):
         username=None,
         password=None,
         proxy_ssl=None,
+        forward: 'AnyioProxy' = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
+            forward=forward,
         )
         self._username = username
         self._password = password

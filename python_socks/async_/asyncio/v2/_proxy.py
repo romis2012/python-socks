@@ -132,12 +132,14 @@ class Socks5Proxy(AsyncioProxy):
         password=None,
         rdns=None,
         proxy_ssl=None,
+        forward: 'AsyncioProxy' = None,
         loop: asyncio.AbstractEventLoop = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
+            forward=forward,
             loop=loop,
         )
         self._username = username
@@ -170,12 +172,14 @@ class Socks4Proxy(AsyncioProxy):
         user_id=None,
         rdns=None,
         proxy_ssl=None,
+        forward: 'AsyncioProxy' = None,
         loop: asyncio.AbstractEventLoop = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
+            forward=forward,
             loop=loop,
         )
         self._user_id = user_id
@@ -206,12 +210,14 @@ class HttpProxy(AsyncioProxy):
         username=None,
         password=None,
         proxy_ssl=None,
+        forward: 'AsyncioProxy' = None,
         loop: asyncio.AbstractEventLoop = None,
     ):
         super().__init__(
             proxy_host=proxy_host,
             proxy_port=proxy_port,
             proxy_ssl=proxy_ssl,
+            forward=forward,
             loop=loop,
         )
         self._username = username
