@@ -13,24 +13,14 @@ class ProxyChain:
         dest_ssl=None,
         timeout=None,
     ):
-        stream = None
-        proxies = list(self._proxies)
+        forward = None
+        for proxy in self._proxies:
+            proxy._forward = forward
+            forward = proxy
 
-        length = len(proxies) - 1
-        for i in range(length):
-            stream = proxies[i].connect(
-                dest_host=proxies[i + 1].proxy_host,
-                dest_port=proxies[i + 1].proxy_port,
-                timeout=timeout,
-                _stream=stream,
-            )
-
-        stream = proxies[length].connect(
+        return forward.connect(
             dest_host=dest_host,
             dest_port=dest_port,
             dest_ssl=dest_ssl,
             timeout=timeout,
-            _stream=stream,
         )
-
-        return stream

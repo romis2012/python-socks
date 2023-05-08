@@ -1,9 +1,8 @@
 import socket
 import ssl
-from typing import Optional
 
+from ._connect import connect_tcp
 from ._stream import SyncSocketStream
-from .._connect import connect_tcp
 from .._resolver import SyncResolver
 from ... import _abc as abc
 from ..._errors import ProxyConnectionError, ProxyTimeoutError
@@ -15,24 +14,18 @@ DEFAULT_TIMEOUT = 60
 
 
 class SyncProxy(abc.SyncProxy):
-    _stream: Optional[SyncSocketStream]
-
     def __init__(
         self,
         proxy_host: str,
         proxy_port: int,
         proxy_ssl: ssl.SSLContext = None,
+        forward: 'SyncProxy' = None,
     ):
         self._proxy_host = proxy_host
         self._proxy_port = proxy_port
         self._proxy_ssl = proxy_ssl
+        self._forward = forward
 
-        self._dest_host = None
-        self._dest_port = None
-        self._dest_ssl = None
-        self._timeout = None
-
-        self._stream = None
         self._resolver = SyncResolver()
 
     def connect(
@@ -41,73 +34,66 @@ class SyncProxy(abc.SyncProxy):
         dest_port: int,
         dest_ssl: ssl.SSLContext = None,
         timeout: float = None,
-        _stream: SyncSocketStream = None,
     ) -> SyncSocketStream:
-
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        self._dest_host = dest_host
-        self._dest_port = dest_port
-        self._dest_ssl = dest_ssl
-        self._timeout = timeout
-
         try:
-            if _stream is None:
-                sock = connect_tcp(
+            if self._forward is None:
+                stream = connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     timeout=timeout,
                 )
-                self._stream = SyncSocketStream(sock)
             else:
-                self._stream = _stream
-
-            if self._proxy_ssl is not None:
-                self._stream = self._stream.start_tls(
-                    hostname=self._proxy_host,
-                    ssl_context=self._proxy_ssl,
+                stream = self._forward.connect(
+                    dest_host=self._proxy_host,
+                    dest_port=self._proxy_port,
+                    timeout=timeout,
                 )
-
-            self._negotiate()
-
-            if self._dest_ssl is not None:
-                self._stream = self._stream.start_tls(
-                    hostname=self._dest_host,
-                    ssl_context=self._dest_ssl,
-                )
-
-            return self._stream
-
-        except socket.timeout as e:
-            self._close()
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(self._timeout)) from e
         except OSError as e:
-            self._close()
             msg = 'Could not connect to proxy {}:{} [{}]'.format(
                 self._proxy_host,
                 self._proxy_port,
                 e.strerror,
             )
             raise ProxyConnectionError(e.errno, msg) from e
+
+        try:
+            if self._proxy_ssl is not None:
+                stream = stream.start_tls(
+                    hostname=self._proxy_host,
+                    ssl_context=self._proxy_ssl,
+                )
+
+            self._negotiate(
+                stream=stream,
+                dest_host=dest_host,
+                dest_port=dest_port,
+            )
+
+            if dest_ssl is not None:
+                stream = stream.start_tls(
+                    hostname=dest_host,
+                    ssl_context=dest_ssl,
+                )
+
+            return stream
+
+        except socket.timeout as e:
+            stream.close()
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
         except Exception:
-            self._close()
+            stream.close()
             raise
 
-    def _negotiate(self):
+    def _negotiate(
+        self,
+        stream: SyncSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         raise NotImplementedError
-
-    def _close(self):
-        if self._stream is not None:
-            self._stream.close()
-
-    @property
-    def proxy_host(self):
-        return self._proxy_host
-
-    @property
-    def proxy_port(self):
-        return self._proxy_port
 
 
 class Socks5Proxy(SyncProxy):
@@ -129,12 +115,17 @@ class Socks5Proxy(SyncProxy):
         self._password = password
         self._rdns = rdns
 
-    def _negotiate(self):
+    def _negotiate(
+        self,
+        stream: SyncSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         proto = Socks5Proto(
-            stream=self._stream,
+            stream=stream,
             resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+            dest_host=dest_host,
+            dest_port=dest_port,
             username=self._username,
             password=self._password,
             rdns=self._rdns,
@@ -159,12 +150,17 @@ class Socks4Proxy(SyncProxy):
         self._user_id = user_id
         self._rdns = rdns
 
-    def _negotiate(self):
+    def _negotiate(
+        self,
+        stream: SyncSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         proto = Socks4Proto(
-            stream=self._stream,
+            stream=stream,
             resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+            dest_host=dest_host,
+            dest_port=dest_port,
             user_id=self._user_id,
             rdns=self._rdns,
         )
@@ -188,11 +184,16 @@ class HttpProxy(SyncProxy):
         self._username = username
         self._password = password
 
-    def _negotiate(self):
+    def _negotiate(
+        self,
+        stream: SyncSocketStream,
+        dest_host: str,
+        dest_port: int,
+    ):
         proto = HttpProto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+            stream=stream,
+            dest_host=dest_host,
+            dest_port=dest_port,
             username=self._username,
             password=self._password,
         )
