@@ -3,14 +3,16 @@ from typing import Optional
 
 import anyio
 
-from ..._errors import ProxyConnectionError, ProxyTimeoutError
+from ..._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 from ..._proto.http_async import HttpProto
 from ..._proto.socks4_async import Socks4Proto
-from ..._proto.socks5_async import Socks5Proto
 
 from ._resolver import Resolver
 from ._stream import AnyioSocketStream
 from ._connect import connect_tcp
+
+from ..._connectors.socks5_async import Socks5AsyncConnector
+from ..._protocols.errors import ReplyError
 
 DEFAULT_TIMEOUT = 60
 
@@ -133,16 +135,16 @@ class Socks5Proxy(AnyioProxy):
         self._rdns = rdns
 
     async def _negotiate(self):
-        proto = Socks5Proto(
-            stream=self._stream,
-            resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+        connector = Socks5AsyncConnector(
             username=self._username,
             password=self._password,
             rdns=self._rdns,
+            resolver=self._resolver,
         )
-        await proto.negotiate()
+        try:
+            await connector.connect(self._stream, host=self._dest_host, port=self._dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)
 
 
 class Socks4Proxy(AnyioProxy):

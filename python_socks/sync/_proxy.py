@@ -1,9 +1,11 @@
 import socket
 
-from .._errors import ProxyConnectionError, ProxyTimeoutError
+from .._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 from .._proto.http_sync import HttpProto
 from .._proto.socks4_sync import Socks4Proto
-from .._proto.socks5_sync import Socks5Proto
+
+from .._connectors.socks5_sync import Socks5SyncConnector
+from .._protocols.errors import ReplyError
 
 from ._stream import SyncSocketStream
 from ._resolver import SyncResolver
@@ -91,16 +93,16 @@ class Socks5Proxy(SyncProxy):
         self._rdns = rdns
 
     def _negotiate(self):
-        proto = Socks5Proto(
-            stream=self._stream,
-            resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+        connector = Socks5SyncConnector(
             username=self._username,
             password=self._password,
             rdns=self._rdns,
+            resolver=self._resolver,
         )
-        proto.negotiate()
+        try:
+            connector.connect(stream=self._stream, host=self._dest_host, port=self._dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)
 
 
 class Socks4Proxy(SyncProxy):

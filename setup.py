@@ -40,6 +40,8 @@ setup(
     packages=[
         'python_socks',
         'python_socks._proto',
+        'python_socks._protocols',
+        'python_socks._connectors',
         'python_socks.sync',
         'python_socks.sync.v2',
         'python_socks.async_',

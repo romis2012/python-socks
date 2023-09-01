@@ -5,10 +5,12 @@ from ._connect import connect_tcp
 from ._stream import SyncSocketStream
 from .._resolver import SyncResolver
 from ... import _abc as abc
-from ..._errors import ProxyConnectionError, ProxyTimeoutError
+from ..._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 from ..._proto.http_sync import HttpProto
 from ..._proto.socks4_sync import Socks4Proto
-from ..._proto.socks5_sync import Socks5Proto
+
+from ..._connectors.socks5_sync import Socks5SyncConnector
+from ..._protocols.errors import ReplyError
 
 DEFAULT_TIMEOUT = 60
 
@@ -82,7 +84,7 @@ class SyncProxy(abc.SyncProxy):
 
         except socket.timeout as e:
             stream.close()
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(f'Proxy connection timed out: {timeout}') from e
         except Exception:
             stream.close()
             raise
@@ -123,16 +125,16 @@ class Socks5Proxy(SyncProxy):
         dest_host: str,
         dest_port: int,
     ):
-        proto = Socks5Proto(
-            stream=stream,
-            resolver=self._resolver,
-            dest_host=dest_host,
-            dest_port=dest_port,
+        connector = Socks5SyncConnector(
             username=self._username,
             password=self._password,
             rdns=self._rdns,
+            resolver=self._resolver,
         )
-        proto.negotiate()
+        try:
+            connector.connect(stream=stream, host=dest_host, port=dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)
 
 
 class Socks4Proxy(SyncProxy):
