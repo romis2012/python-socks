@@ -13,10 +13,10 @@ class Socks5AsyncConnector:
         rdns: bool,
         resolver: abc.AsyncResolver,
     ):
-        self.username = username
-        self.password = password
-        self.rdns = rdns
-        self.resolver = resolver
+        self._username = username
+        self._password = password
+        self._rdns = rdns
+        self._resolver = resolver
 
     async def connect(
         self,
@@ -28,8 +28,8 @@ class Socks5AsyncConnector:
 
         # Auth methods
         request = socks5.AuthMethodsRequest(
-            username=self.username,
-            password=self.password,
+            username=self._username,
+            password=self._password,
         )
         data = conn.send(request)
         await stream.write_all(data)
@@ -40,8 +40,8 @@ class Socks5AsyncConnector:
         # Authenticate
         if reply.method == socks5.AuthMethod.USERNAME_PASSWORD:
             request = socks5.AuthRequest(
-                username=self.username,
-                password=self.password,
+                username=self._username,
+                password=self._password,
             )
             data = conn.send(request)
             await stream.write_all(data)
@@ -50,8 +50,8 @@ class Socks5AsyncConnector:
             _: socks5.AuthReply = conn.receive(data)
 
         # Connect
-        if not is_ip_address(host) and not self.rdns:
-            _, dest_host = await self.resolver.resolve(
+        if not is_ip_address(host) and not self._rdns:
+            _, dest_host = await self._resolver.resolve(
                 host,
                 family=socket.AF_UNSPEC,
             )

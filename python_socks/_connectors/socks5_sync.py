@@ -13,21 +13,21 @@ class Socks5SyncConnector:
         rdns: bool,
         resolver: abc.SyncResolver,
     ):
-        self.username = username
-        self.password = password
-        self.rdns = rdns
-        self.resolver = resolver
+        self._username = username
+        self._password = password
+        self._rdns = rdns
+        self._resolver = resolver
 
     def connect(
         self,
         stream: abc.SyncSocketStream,
         host: str,
         port: int,
-    ):
+    ) -> socks5.ConnectReply:
         conn = socks5.Connection()
 
         # Auth methods
-        request = socks5.AuthMethodsRequest(username=self.username, password=self.password)
+        request = socks5.AuthMethodsRequest(username=self._username, password=self._password)
         data = conn.send(request)
         stream.write_all(data)
 
@@ -36,7 +36,7 @@ class Socks5SyncConnector:
 
         # Authenticate
         if reply.method == socks5.AuthMethod.USERNAME_PASSWORD:
-            request = socks5.AuthRequest(username=self.username, password=self.password)
+            request = socks5.AuthRequest(username=self._username, password=self._password)
             data = conn.send(request)
             stream.write_all(data)
 
@@ -44,12 +44,13 @@ class Socks5SyncConnector:
             _: socks5.AuthReply = conn.receive(data)
 
         # Connect
-        if not is_ip_address(host) and not self.rdns:
-            _, dest_host = self.resolver.resolve(host, family=socket.AF_UNSPEC)
+        if not is_ip_address(host) and not self._rdns:
+            _, dest_host = self._resolver.resolve(host, family=socket.AF_UNSPEC)
 
         request = socks5.ConnectRequest(host=host, port=port)
         data = conn.send(request)
         stream.write_all(data)
 
         data = stream.read()
-        _: socks5.ConnectReply = conn.receive(data)
+        reply: socks5.ConnectReply = conn.receive(data)
+        return reply
