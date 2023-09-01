@@ -3,6 +3,7 @@ import ipaddress
 import socket
 from dataclasses import dataclass
 
+from .errors import ReplyError
 from .._helpers import is_ipv4_address
 
 RSV = NULL = 0x00
@@ -31,12 +32,6 @@ ReplyMessages = {
         'Request rejected because the client program and identd report different user-ids'
     ),
 }
-
-
-class ReplyError(Exception):
-    def __init__(self, message, error_code=None):
-        super().__init__(message)
-        self.error_code = error_code
 
 
 @dataclass
