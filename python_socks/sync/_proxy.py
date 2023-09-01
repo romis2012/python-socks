@@ -2,10 +2,10 @@ import socket
 
 from .._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 from .._proto.http_sync import HttpProto
-from .._proto.socks4_sync import Socks4Proto
 
-from .._connectors.socks5_sync import Socks5SyncConnector
 from .._protocols.errors import ReplyError
+from .._connectors.socks4_sync import Socks4SyncConnector
+from .._connectors.socks5_sync import Socks5SyncConnector
 
 from ._stream import SyncSocketStream
 from ._resolver import SyncResolver
@@ -35,7 +35,6 @@ class SyncProxy(abc.SyncProxy):
         timeout: float = None,
         _socket=None,
     ) -> socket.socket:
-
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
@@ -112,15 +111,15 @@ class Socks4Proxy(SyncProxy):
         self._rdns = rdns
 
     def _negotiate(self):
-        proto = Socks4Proto(
-            stream=self._stream,
-            resolver=self._resolver,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+        connector = Socks4SyncConnector(
             user_id=self._user_id,
             rdns=self._rdns,
+            resolver=self._resolver,
         )
-        proto.negotiate()
+        try:
+            connector.connect(stream=self._stream, host=self._dest_host, port=self._dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)
 
 
 class HttpProxy(SyncProxy):

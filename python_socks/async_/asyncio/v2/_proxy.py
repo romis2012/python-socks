@@ -6,10 +6,10 @@ import async_timeout
 
 from ...._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 from ...._proto.http_async import HttpProto
-from ...._proto.socks4_async import Socks4Proto
 
-from ...._connectors.socks5_async import Socks5AsyncConnector
 from ...._protocols.errors import ReplyError
+from ...._connectors.socks5_async import Socks5AsyncConnector
+from ...._connectors.socks4_async import Socks4AsyncConnector
 
 from .._resolver import Resolver
 from ._stream import AsyncioSocketStream
@@ -193,15 +193,15 @@ class Socks4Proxy(AsyncioProxy):
         dest_host: str,
         dest_port: int,
     ):
-        proto = Socks4Proto(
-            stream=stream,
-            resolver=self._resolver,
-            dest_host=dest_host,
-            dest_port=dest_port,
+        connector = Socks4AsyncConnector(
             user_id=self._user_id,
             rdns=self._rdns,
+            resolver=self._resolver,
         )
-        await proto.negotiate()
+        try:
+            await connector.connect(stream=stream, host=dest_host, port=dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)
 
 
 class HttpProxy(AsyncioProxy):

@@ -6,9 +6,7 @@ from collections import namedtuple
 class BasicAuth(namedtuple('BasicAuth', ['login', 'password', 'encoding'])):
     """Http basic authentication helper."""
 
-    def __new__(cls, login: str,
-                password: str = '',
-                encoding: str = 'latin1') -> 'BasicAuth':
+    def __new__(cls, login: str, password: str = '', encoding: str = 'latin1') -> 'BasicAuth':
         if login is None:
             raise ValueError('None is not allowed as login value')
 
@@ -16,8 +14,7 @@ class BasicAuth(namedtuple('BasicAuth', ['login', 'password', 'encoding'])):
             raise ValueError('None is not allowed as password value')
 
         if ':' in login:
-            raise ValueError(
-                'A ":" is not allowed in login (RFC 1945#section-11.1)')
+            raise ValueError('A ":" is not allowed in login (RFC 1945#section-11.1)')
 
         # noinspection PyTypeChecker,PyArgumentList
         return super().__new__(cls, login, password, encoding)
@@ -34,9 +31,9 @@ class BasicAuth(namedtuple('BasicAuth', ['login', 'password', 'encoding'])):
             raise ValueError('Unknown authorization method %s' % auth_type)
 
         try:
-            decoded = base64.b64decode(
-                encoded_credentials.encode('ascii'), validate=True
-            ).decode(encoding)
+            decoded = base64.b64decode(encoded_credentials.encode('ascii'), validate=True).decode(
+                encoding
+            )
         except binascii.Error:
             raise ValueError('Invalid base64 encoding.')
 
