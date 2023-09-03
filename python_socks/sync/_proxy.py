@@ -1,11 +1,11 @@
 import socket
 
 from .._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
-from .._proto.http_sync import HttpProto
 
 from .._protocols.errors import ReplyError
 from .._connectors.socks4_sync import Socks4SyncConnector
 from .._connectors.socks5_sync import Socks5SyncConnector
+from .._connectors.http_sync import HttpSyncConnector
 
 from ._stream import SyncSocketStream
 from ._resolver import SyncResolver
@@ -129,11 +129,12 @@ class HttpProxy(SyncProxy):
         self._password = password
 
     def _negotiate(self):
-        proto = HttpProto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+        connector = HttpSyncConnector(
             username=self._username,
             password=self._password,
+            resolver=self._resolver,
         )
-        proto.negotiate()
+        try:
+            connector.connect(stream=self._stream, host=self._dest_host, port=self._dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)

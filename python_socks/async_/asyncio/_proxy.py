@@ -6,13 +6,13 @@ from typing import Optional
 import async_timeout
 
 from ..._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
-from ..._proto.http_async import HttpProto
 from ._stream import AsyncioSocketStream
 from ._resolver import Resolver
 
 from ..._protocols.errors import ReplyError
 from ..._connectors.socks5_async import Socks5AsyncConnector
 from ..._connectors.socks4_async import Socks4AsyncConnector
+from ..._connectors.http_async import HttpAsyncConnector
 
 from ._connect import connect_tcp
 from ... import _abc as abc
@@ -194,11 +194,12 @@ class HttpProxy(AsyncioProxy):
         self._password = password
 
     async def _negotiate(self):
-        proto = HttpProto(
-            stream=self._stream,
-            dest_host=self._dest_host,
-            dest_port=self._dest_port,
+        connector = HttpAsyncConnector(
             username=self._username,
             password=self._password,
+            resolver=self._resolver,
         )
-        await proto.negotiate()
+        try:
+            await connector.connect(self._stream, host=self._dest_host, port=self._dest_port)
+        except ReplyError as e:
+            raise ProxyError(e, error_code=e.error_code)
