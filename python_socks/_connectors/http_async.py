@@ -1,13 +1,15 @@
-from .. import _abc as abc
+from .._abc import AsyncSocketStream, AsyncResolver
+from .abc import AsyncConnector
+
 from .._protocols import http
 
 
-class HttpAsyncConnector:
+class HttpAsyncConnector(AsyncConnector):
     def __init__(
         self,
         username: str,
         password: str,
-        resolver: abc.AsyncResolver,
+        resolver: AsyncResolver,
     ):
         self._username = username
         self._password = password
@@ -15,7 +17,7 @@ class HttpAsyncConnector:
 
     async def connect(
         self,
-        stream: abc.AsyncSocketStream,
+        stream: AsyncSocketStream,
         host: str,
         port: int,
     ) -> http.ConnectReply:

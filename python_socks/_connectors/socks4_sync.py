@@ -1,24 +1,29 @@
 import socket
 
-from .. import _abc as abc
+from .._abc import SyncSocketStream, SyncResolver
+from .abc import SyncConnector
+
 from .._protocols import socks4
 from .._helpers import is_ip_address
 
 
-class Socks4SyncConnector:
+class Socks4SyncConnector(SyncConnector):
     def __init__(
         self,
         user_id: str,
         rdns: bool,
-        resolver: abc.SyncResolver,
+        resolver: SyncResolver,
     ):
+        if rdns is None:
+            rdns = False
+
         self._user_id = user_id
         self._rdns = rdns
         self._resolver = resolver
 
     def connect(
         self,
-        stream: abc.SyncSocketStream,
+        stream: SyncSocketStream,
         host: str,
         port: int,
     ) -> socks4.ConnectReply:

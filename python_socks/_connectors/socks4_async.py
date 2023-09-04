@@ -1,24 +1,29 @@
 import socket
 
-from .. import _abc as abc
+from .._abc import AsyncSocketStream, AsyncResolver
+from .abc import AsyncConnector
+
 from .._protocols import socks4
 from .._helpers import is_ip_address
 
 
-class Socks4AsyncConnector:
+class Socks4AsyncConnector(AsyncConnector):
     def __init__(
         self,
         user_id: str,
         rdns: bool,
-        resolver: abc.AsyncResolver,
+        resolver: AsyncResolver,
     ):
+        if rdns is None:
+            rdns = False
+
         self._user_id = user_id
         self._rdns = rdns
         self._resolver = resolver
 
     async def connect(
         self,
-        stream: abc.AsyncSocketStream,
+        stream: AsyncSocketStream,
         host: str,
         port: int,
     ) -> socks4.ConnectReply:

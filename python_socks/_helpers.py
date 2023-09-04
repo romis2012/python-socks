@@ -54,8 +54,7 @@ def parse_proxy_url(url):
     elif scheme == 'http':
         proxy_type = ProxyType.HTTP
     else:
-        raise ValueError('Invalid scheme component: %s'
-                         % scheme)  # pragma: no cover
+        raise ValueError(f'Invalid scheme component: {scheme}')  # pragma: no cover
 
     host = parsed.hostname
     if not host:

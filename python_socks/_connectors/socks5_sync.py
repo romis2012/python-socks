@@ -1,18 +1,23 @@
 import socket
 
-from .. import _abc as abc
+from .._abc import SyncSocketStream, SyncResolver
+from .abc import SyncConnector
+
 from .._protocols import socks5
 from .._helpers import is_ip_address
 
 
-class Socks5SyncConnector:
+class Socks5SyncConnector(SyncConnector):
     def __init__(
         self,
         username: str,
         password: str,
         rdns: bool,
-        resolver: abc.SyncResolver,
+        resolver: SyncResolver,
     ):
+        if rdns is None:
+            rdns = True
+
         self._username = username
         self._password = password
         self._rdns = rdns
@@ -20,7 +25,7 @@ class Socks5SyncConnector:
 
     def connect(
         self,
-        stream: abc.SyncSocketStream,
+        stream: SyncSocketStream,
         host: str,
         port: int,
     ) -> socks5.ConnectReply:

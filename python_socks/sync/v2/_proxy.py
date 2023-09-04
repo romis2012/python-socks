@@ -5,12 +5,13 @@ from ._connect import connect_tcp
 from ._stream import SyncSocketStream
 from .._resolver import SyncResolver
 from ... import _abc as abc
+from ..._types import ProxyType
 from ..._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
+from ..._helpers import parse_proxy_url
 
 from ..._protocols.errors import ReplyError
-from ..._connectors.socks5_sync import Socks5SyncConnector
-from ..._connectors.socks4_sync import Socks4SyncConnector
-from ..._connectors.http_sync import HttpSyncConnector
+from ..._connectors.factory_sync import create_connector
+
 
 DEFAULT_TIMEOUT = 60
 
@@ -18,13 +19,21 @@ DEFAULT_TIMEOUT = 60
 class SyncProxy(abc.SyncProxy):
     def __init__(
         self,
-        proxy_host: str,
-        proxy_port: int,
+        proxy_type: ProxyType,
+        host: str,
+        port: int,
+        username: str = None,
+        password: str = None,
+        rdns: bool = None,
         proxy_ssl: ssl.SSLContext = None,
         forward: 'SyncProxy' = None,
     ):
-        self._proxy_host = proxy_host
-        self._proxy_port = proxy_port
+        self._proxy_type = proxy_type
+        self._proxy_host = host
+        self._proxy_port = port
+        self._username = username
+        self._password = password
+        self._rdns = rdns
         self._proxy_ssl = proxy_ssl
         self._forward = forward
 
@@ -68,10 +77,17 @@ class SyncProxy(abc.SyncProxy):
                     ssl_context=self._proxy_ssl,
                 )
 
-            self._negotiate(
+            connector = create_connector(
+                proxy_type=self._proxy_type,
+                username=self._username,
+                password=self._password,
+                rdns=self._rdns,
+                resolver=self._resolver,
+            )
+            connector.connect(
                 stream=stream,
-                dest_host=dest_host,
-                dest_port=dest_port,
+                host=dest_host,
+                port=dest_port,
             )
 
             if dest_ssl is not None:
@@ -85,125 +101,18 @@ class SyncProxy(abc.SyncProxy):
         except socket.timeout as e:
             stream.close()
             raise ProxyTimeoutError(f'Proxy connection timed out: {timeout}') from e
+        except ReplyError as e:
+            stream.close()
+            raise ProxyError(e, error_code=e.error_code)
         except Exception:
             stream.close()
             raise
 
-    def _negotiate(
-        self,
-        stream: SyncSocketStream,
-        dest_host: str,
-        dest_port: int,
-    ):
-        raise NotImplementedError
+    @classmethod
+    def create(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
 
-
-class Socks5Proxy(SyncProxy):
-    def __init__(
-        self,
-        proxy_host,
-        proxy_port,
-        username=None,
-        password=None,
-        rdns=None,
-        proxy_ssl=None,
-        forward: 'SyncProxy' = None,
-    ):
-        super().__init__(
-            proxy_host=proxy_host,
-            proxy_port=proxy_port,
-            proxy_ssl=proxy_ssl,
-            forward=forward,
-        )
-        self._username = username
-        self._password = password
-        self._rdns = rdns
-
-    def _negotiate(
-        self,
-        stream: SyncSocketStream,
-        dest_host: str,
-        dest_port: int,
-    ):
-        connector = Socks5SyncConnector(
-            username=self._username,
-            password=self._password,
-            rdns=self._rdns,
-            resolver=self._resolver,
-        )
-        try:
-            connector.connect(stream=stream, host=dest_host, port=dest_port)
-        except ReplyError as e:
-            raise ProxyError(e, error_code=e.error_code)
-
-
-class Socks4Proxy(SyncProxy):
-    def __init__(
-        self,
-        proxy_host,
-        proxy_port,
-        user_id=None,
-        rdns=None,
-        proxy_ssl=None,
-        forward: 'SyncProxy' = None,
-    ):
-        super().__init__(
-            proxy_host=proxy_host,
-            proxy_port=proxy_port,
-            proxy_ssl=proxy_ssl,
-            forward=forward,
-        )
-        self._user_id = user_id
-        self._rdns = rdns
-
-    def _negotiate(
-        self,
-        stream: SyncSocketStream,
-        dest_host: str,
-        dest_port: int,
-    ):
-        connector = Socks4SyncConnector(
-            user_id=self._user_id,
-            rdns=self._rdns,
-            resolver=self._resolver,
-        )
-        try:
-            connector.connect(stream=stream, host=dest_host, port=dest_port)
-        except ReplyError as e:
-            raise ProxyError(e, error_code=e.error_code)
-
-
-class HttpProxy(SyncProxy):
-    def __init__(
-        self,
-        proxy_host,
-        proxy_port,
-        username=None,
-        password=None,
-        proxy_ssl=None,
-        forward: 'SyncProxy' = None,
-    ):
-        super().__init__(
-            proxy_host=proxy_host,
-            proxy_port=proxy_port,
-            proxy_ssl=proxy_ssl,
-            forward=forward,
-        )
-        self._username = username
-        self._password = password
-
-    def _negotiate(
-        self,
-        stream: SyncSocketStream,
-        dest_host: str,
-        dest_port: int,
-    ):
-        connector = HttpSyncConnector(
-            username=self._username,
-            password=self._password,
-            resolver=self._resolver,
-        )
-        try:
-            connector.connect(stream=stream, host=dest_host, port=dest_port)
-        except ReplyError as e:
-            raise ProxyError(e, error_code=e.error_code)
+    @classmethod
+    def from_url(cls, url: str, **kwargs):
+        url_args = parse_proxy_url(url)
+        return cls(*url_args, **kwargs)

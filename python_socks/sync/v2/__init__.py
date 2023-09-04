@@ -1,5 +1,4 @@
-from ._factory import Proxy
-
+from ._proxy import SyncProxy as Proxy
 from ._chain import ProxyChain
 
 __all__ = (

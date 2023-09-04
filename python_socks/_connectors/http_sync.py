@@ -1,13 +1,15 @@
-from .. import _abc as abc
+from .._abc import SyncSocketStream, SyncResolver
+from .abc import SyncConnector
+
 from .._protocols import http
 
 
-class HttpSyncConnector:
+class HttpSyncConnector(SyncConnector):
     def __init__(
         self,
         username: str,
         password: str,
-        resolver: abc.SyncResolver,
+        resolver: SyncResolver,
     ):
         self._username = username
         self._password = password
@@ -15,7 +17,7 @@ class HttpSyncConnector:
 
     def connect(
         self,
-        stream: abc.SyncSocketStream,
+        stream: SyncSocketStream,
         host: str,
         port: int,
     ) -> http.ConnectReply:

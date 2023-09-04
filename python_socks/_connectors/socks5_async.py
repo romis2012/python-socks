@@ -1,18 +1,23 @@
 import socket
 
-from .. import _abc as abc
+from .._abc import AsyncSocketStream, AsyncResolver
+from .abc import AsyncConnector
+
 from .._protocols import socks5
 from .._helpers import is_ip_address
 
 
-class Socks5AsyncConnector:
+class Socks5AsyncConnector(AsyncConnector):
     def __init__(
         self,
         username: str,
         password: str,
         rdns: bool,
-        resolver: abc.AsyncResolver,
+        resolver: AsyncResolver,
     ):
+        if rdns is None:
+            rdns = True
+
         self._username = username
         self._password = password
         self._rdns = rdns
@@ -20,7 +25,7 @@ class Socks5AsyncConnector:
 
     async def connect(
         self,
-        stream: abc.AsyncSocketStream,
+        stream: AsyncSocketStream,
         host: str,
         port: int,
     ) -> socks5.ConnectReply:
