@@ -1,45 +1,40 @@
 #!/usr/bin/env python
-import codecs
 import os
 import re
 import sys
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
-version = None
-
-with codecs.open(
-    os.path.join(os.path.abspath(os.path.dirname(__file__)), 'python_socks', '_version.py'),
-    'r',
-    'latin1',
-) as fp:
-    try:
-        version = re.findall(r"^__version__ = '([^']+)'\r?$", fp.read(), re.M)[0]
-    except IndexError:
-        raise RuntimeError('Unable to determine version.')
 
 if sys.version_info < (3, 6, 1):
     raise RuntimeError('python-socks requires Python >= 3.6.2')
 
-with open('README.md') as f:
-    long_description = f.read()
+
+def get_version():
+    here = os.path.dirname(os.path.abspath(__file__))
+    filename = os.path.join(here, 'python_socks', '_version.py')
+    contents = open(filename).read()
+    pattern = r"^__version__ = '(.*?)'$"
+    return re.search(pattern, contents, re.MULTILINE).group(1)
+
+
+def get_long_description():
+    with open('README.md', mode='r', encoding='utf8') as f:
+        return f.read()
+
 
 setup(
     name='python-socks',
     author='Roman Snegirev',
     author_email='snegiryev@gmail.com',
-    version=version,
+    version=get_version(),
     license='Apache 2',
     url='https://github.com/romis2012/python-socks',
     description='Core proxy (SOCKS4, SOCKS5, HTTP tunneling) functionality for Python',
-    long_description=long_description,
+    long_description=get_version(),
     long_description_content_type='text/markdown',
     packages=[
         'python_socks',
-        'python_socks._proto',
         'python_socks._protocols',
         'python_socks._connectors',
         'python_socks.sync',
@@ -58,6 +53,6 @@ setup(
         'asyncio': ['async-timeout>=3.0.1'],
         'trio': ['trio>=0.16.0'],
         'curio': ['curio>=1.4'],
-        'anyio': ['anyio>=3.3.4'],
+        'anyio': ['anyio>=3.3.4,<4.0.0'],
     },
 )
