@@ -73,7 +73,16 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         self,
         hostname: str,
         ssl_context: ssl.SSLContext,
+        ssl_handshake_timeout=None,
     ) -> 'AsyncioSocketStream':
+        if hasattr(self._writer, 'start_tls'):  # Python>=3.11
+            await self._writer.start_tls(
+                ssl_context,
+                server_hostname=hostname,
+                ssl_handshake_timeout=ssl_handshake_timeout,
+            )
+            return self
+
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
 
@@ -85,6 +94,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
             ssl_context,
             server_side=False,
             server_hostname=hostname,
+            ssl_handshake_timeout=ssl_handshake_timeout,
         )
 
         # reader.set_transport(transport)
