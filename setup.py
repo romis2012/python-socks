@@ -31,7 +31,7 @@ setup(
     license='Apache 2',
     url='https://github.com/romis2012/python-socks',
     description='Core proxy (SOCKS4, SOCKS5, HTTP tunneling) functionality for Python',
-    long_description=get_version(),
+    long_description=get_long_description(),
     long_description_content_type='text/markdown',
     packages=[
         'python_socks',
