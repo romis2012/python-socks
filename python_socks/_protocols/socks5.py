@@ -191,7 +191,7 @@ class ConnectReply:
     @classmethod
     def loads(cls, data: bytes) -> 'ConnectReply':
         if not data:
-            raise ReplyError('Empty data')
+            raise ReplyError('Empty connect reply')
 
         ver = data[0]
         if ver != SOCKS_VER:  # pragma: no cover
