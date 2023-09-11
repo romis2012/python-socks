@@ -190,6 +190,9 @@ class ConnectReply:
 
     @classmethod
     def loads(cls, data: bytes) -> 'ConnectReply':
+        if not data:
+            raise ReplyError('Empty data')
+
         ver = data[0]
         if ver != SOCKS_VER:  # pragma: no cover
             raise ReplyError(f'Unexpected SOCKS version number: {ver:#02X}')
