@@ -49,26 +49,26 @@ class SyncProxy(abc.SyncProxy):
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        try:
-            if self._forward is None:
+        if self._forward is None:
+            try:
                 stream = connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     timeout=timeout,
                 )
-            else:
-                stream = self._forward.connect(
-                    dest_host=self._proxy_host,
-                    dest_port=self._proxy_port,
-                    timeout=timeout,
+            except OSError as e:
+                msg = 'Could not connect to proxy {}:{} [{}]'.format(
+                    self._proxy_host,
+                    self._proxy_port,
+                    e.strerror,
                 )
-        except OSError as e:
-            msg = 'Could not connect to proxy {}:{} [{}]'.format(
-                self._proxy_host,
-                self._proxy_port,
-                e.strerror,
+                raise ProxyConnectionError(e.errno, msg) from e
+        else:
+            stream = self._forward.connect(
+                dest_host=self._proxy_host,
+                dest_port=self._proxy_port,
+                timeout=timeout,
             )
-            raise ProxyConnectionError(e.errno, msg) from e
 
         try:
             if self._proxy_ssl is not None:

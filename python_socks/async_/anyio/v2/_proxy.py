@@ -66,22 +66,23 @@ class AnyioProxy:
         dest_port: int,
         dest_ssl: ssl.SSLContext = None,
     ) -> AnyioSocketStream:
-        try:
-            if self._forward is None:
+        if self._forward is None:
+            try:
                 stream = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                 )
-            else:
-                stream = await self._forward.connect(
-                    dest_host=self._proxy_host,
-                    dest_port=self._proxy_port,
-                )
-        except OSError as e:
-            raise ProxyConnectionError(
-                e.errno,
-                f"Couldn't connect to proxy {self._proxy_host}:{self._proxy_port} [{e.strerror}]",
-            ) from e
+            except OSError as e:
+                raise ProxyConnectionError(
+                    e.errno,
+                    "Couldn't connect to proxy"
+                    f" {self._proxy_host}:{self._proxy_port} [{e.strerror}]",
+                ) from e
+        else:
+            stream = await self._forward.connect(
+                dest_host=self._proxy_host,
+                dest_port=self._proxy_port,
+            )
 
         try:
             if self._proxy_ssl is not None:
