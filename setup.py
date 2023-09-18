@@ -53,6 +53,6 @@ setup(
         'asyncio': ['async-timeout>=3.0.1'],
         'trio': ['trio>=0.16.0'],
         'curio': ['curio>=1.4'],
-        'anyio': ['anyio>=3.3.4,<4.0.0'],
+        'anyio': ['anyio>=3.3.4,<5.0.0'],
     },
 )
