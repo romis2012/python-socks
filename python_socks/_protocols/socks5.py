@@ -199,6 +199,8 @@ class ConnectReply:
 
         try:
             reply = ReplyCode(data[1])
+        except IndexError:
+            raise ReplyError(f'Malformed connect reply')
         except ValueError:
             raise ReplyError(f'Invalid reply code: {data[1]:#02X}')
 
@@ -206,13 +208,20 @@ class ConnectReply:
             msg = ReplyMessages.get(reply, 'Unknown error')  # type: ignore
             raise ReplyError(msg, error_code=reply)
 
-        rsv = data[2]
+        try:
+            rsv = data[2]
+        except IndexError:
+            raise ReplyError(f'Malformed connect reply')
+
         if rsv != RSV:  # pragma: no cover
             raise ReplyError(f'The reserved byte must be {RSV:#02X}')
 
-        addr_type = data[3]
-        bnd_host_data = data[4:-2]
-        bnd_port_data = data[-2:]
+        try:
+            addr_type = data[3]
+            bnd_host_data = data[4:-2]
+            bnd_port_data = data[-2:]
+        except IndexError:
+            raise ReplyError(f'Malformed connect reply')
 
         if addr_type == AddressType.IPV4:
             bnd_host = socket.inet_ntop(socket.AF_INET, bnd_host_data)
