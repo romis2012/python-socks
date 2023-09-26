@@ -2,7 +2,7 @@
 import pytest
 
 from python_socks._helpers import is_ip_address  # noqa
-from python_socks._basic_auth import BasicAuth  # noqa
+from python_socks._protocols.http import BasicAuth  # noqa
 
 
 @pytest.mark.parametrize('address', ('::1', b'::1', '127.0.0.1', b'127.0.0.1'))
