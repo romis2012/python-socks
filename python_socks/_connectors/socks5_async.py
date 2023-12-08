@@ -56,7 +56,7 @@ class Socks5AsyncConnector(AsyncConnector):
 
         # Connect
         if not is_ip_address(host) and not self._rdns:
-            _, dest_host = await self._resolver.resolve(
+            _, host = await self._resolver.resolve(
                 host,
                 family=socket.AF_UNSPEC,
             )

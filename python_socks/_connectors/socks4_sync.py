@@ -30,7 +30,7 @@ class Socks4SyncConnector(SyncConnector):
         conn = socks4.Connection()
 
         if not is_ip_address(host) and not self._rdns:
-            _, dest_host = self._resolver.resolve(
+            _, host = self._resolver.resolve(
                 host,
                 family=socket.AF_INET,
             )

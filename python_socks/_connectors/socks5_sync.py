@@ -50,7 +50,7 @@ class Socks5SyncConnector(SyncConnector):
 
         # Connect
         if not is_ip_address(host) and not self._rdns:
-            _, dest_host = self._resolver.resolve(host, family=socket.AF_UNSPEC)
+            _, host = self._resolver.resolve(host, family=socket.AF_UNSPEC)
 
         request = socks5.ConnectRequest(host=host, port=port)
         data = conn.send(request)
