@@ -30,6 +30,7 @@ class AsyncioProxy:
         proxy_ssl: ssl.SSLContext = None,
         forward: 'AsyncioProxy' = None,
         loop: asyncio.AbstractEventLoop = None,
+        resolver: Resolver = None
     ):
         if loop is not None:  # pragma: no cover
             warnings.warn(
@@ -53,7 +54,7 @@ class AsyncioProxy:
         self._proxy_ssl = proxy_ssl
         self._forward = forward
 
-        self._resolver = Resolver(loop=loop)
+        self._resolver = Resolver(loop=loop) if resolver is None else resolver
 
     async def connect(
         self,
