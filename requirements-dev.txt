@@ -1,17 +1,14 @@
-importlib_metadata==4.12.0; python_version == "3.7"
-flake8==3.9.1
-pytest==7.0.1
-pytest-cov==3.0.0
-coveralls==3.3.1
-pytest-asyncio==0.16.0; python_version < "3.7"
-pytest-asyncio==0.18.3; python_version >= "3.7"
+flake8>=3.9.1
+pytest==8.0.2
+pytest-cov==4.1.0
+pytest-asyncio==0.23.5
+trio==0.24.0
+pytest-trio==0.8.0
 trustme==0.9.0
 attrs>=22.1.0
-trio>=0.16.0
-pytest-trio>=0.7.0
-curio>=1.4
+curio>=1.4; python_version < "3.12" # https://github.com/dabeaz/curio/issues/367
 anyio>=3.3.4,<5.0.0
 yarl>=1.4.2
-async-timeout>=3.0.1
+async-timeout==4.0.0
 flask>=1.1.2
 tiny-proxy>=0.1.1
