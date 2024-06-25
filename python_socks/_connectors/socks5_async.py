@@ -3,6 +3,7 @@ import socket
 from .._abc import AsyncSocketStream, AsyncResolver
 from .abc import AsyncConnector
 
+from .._protocols.errors import ReplyError
 from .._protocols import socks5
 from .._helpers import is_ip_address
 
@@ -65,6 +66,15 @@ class Socks5AsyncConnector(AsyncConnector):
         data = conn.send(request)
         await stream.write_all(data)
 
-        data = await stream.read()
+        data = await stream.read_exact(4)
+        if data[3] == socks5.AddressType.IPV4:
+            data += await stream.read_exact(6)
+        elif data[3] == socks5.AddressType.IPV6:
+            data += await stream.read_exact(18)
+        elif data[3] == socks5.AddressType.DOMAIN:
+            data += await stream.read_exact(int.from_bytes(await stream.read_exact(1)) + 2)
+        else:  # pragma: no cover
+            raise ReplyError(f'Invalid address type: {data[3]:#02X}')
+
         reply: socks5.ConnectReply = conn.receive(data)
         return reply

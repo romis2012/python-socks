@@ -3,6 +3,7 @@ import socket
 from .._abc import SyncSocketStream, SyncResolver
 from .abc import SyncConnector
 
+from .._protocols.errors import ReplyError
 from .._protocols import socks5
 from .._helpers import is_ip_address
 
@@ -56,6 +57,15 @@ class Socks5SyncConnector(SyncConnector):
         data = conn.send(request)
         stream.write_all(data)
 
-        data = stream.read()
+        data = stream.read_exact(4)
+        if data[3] == socks5.AddressType.IPV4:
+            data += stream.read_exact(6)
+        elif data[3] == socks5.AddressType.IPV6:
+            data += stream.read_exact(18)
+        elif data[3] == socks5.AddressType.DOMAIN:
+            data += stream.read_exact(int.from_bytes(stream.read_exact(1)) + 2)
+        else:  # pragma: no cover
+            raise ReplyError(f'Invalid address type: {data[3]:#02X}')
+
         reply: socks5.ConnectReply = conn.receive(data)
         return reply
