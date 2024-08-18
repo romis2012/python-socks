@@ -120,7 +120,10 @@ class AsyncioProxy(abc.AsyncProxy):
 
         def is_uvloop_event_loop():
             try:
-                from uvloop import Loop  # noqa
+                if sys.platform in ["win32", "cli", "cygwin"]:
+                    from winloop import Loop # noqa
+                else:
+                    from uvloop import Loop  # noqa
             except ImportError:
                 return False
             return isinstance(self._loop, Loop)
