@@ -57,15 +57,28 @@ class Socks5SyncConnector(SyncConnector):
         data = conn.send(request)
         stream.write_all(data)
 
-        data = stream.read_exact(4)
-        if data[3] == socks5.AddressType.IPV4:
-            data += stream.read_exact(6)
-        elif data[3] == socks5.AddressType.IPV6:
-            data += stream.read_exact(18)
-        elif data[3] == socks5.AddressType.DOMAIN:
-            data += stream.read_exact(int.from_bytes(stream.read_exact(1)) + 2)
-        else:  # pragma: no cover
-            raise ReplyError(f'Invalid address type: {data[3]:#02X}')
-
+        data = self._read_reply(stream)
         reply: socks5.ConnectReply = conn.receive(data)
         return reply
+
+    # noinspection PyMethodMayBeStatic
+    def _read_reply(self, stream: SyncSocketStream) -> bytes:
+        data = stream.read_exact(4)
+        if data[0] != socks5.SOCKS_VER:
+            return data
+        if data[1] != socks5.ReplyCode.SUCCEEDED:
+            return data
+        if data[2] != socks5.RSV:
+            return data
+
+        addr_type = data[3]
+
+        if addr_type == socks5.AddressType.IPV4:
+            data += stream.read_exact(6)
+        elif addr_type == socks5.AddressType.IPV6:
+            data += stream.read_exact(18)
+        elif addr_type == socks5.AddressType.DOMAIN:
+            host_len, *_ = stream.read_exact(1)
+            data += stream.read_exact(host_len + 2)
+
+        return data
