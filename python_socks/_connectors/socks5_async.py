@@ -3,7 +3,6 @@ import socket
 from .._abc import AsyncSocketStream, AsyncResolver
 from .abc import AsyncConnector
 
-from .._protocols.errors import ReplyError
 from .._protocols import socks5
 from .._helpers import is_ip_address
 
