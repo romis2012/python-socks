@@ -50,7 +50,7 @@ setup(
     ],
     keywords='socks socks5 socks4 http proxy asyncio trio curio anyio',
     extras_require={
-        'asyncio': ['async-timeout>=3.0.1'],
+        'asyncio': ['async-timeout>=3.0.1; python_version < "3.11"'],
         'trio': ['trio>=0.16.0'],
         'curio': ['curio>=1.4'],
         'anyio': ['anyio>=3.3.4,<5.0.0'],

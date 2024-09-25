@@ -9,6 +9,6 @@ attrs>=22.1.0
 curio>=1.4; python_version < "3.12" # https://github.com/dabeaz/curio/issues/367
 anyio>=3.3.4,<5.0.0
 yarl>=1.4.2
-async-timeout==4.0.0
+async-timeout==4.0.0; python_version < "3.11"
 flask>=1.1.2
 tiny-proxy>=0.1.1

@@ -1,8 +1,13 @@
 import asyncio
 import ssl
 import warnings
+import sys
 
-import async_timeout
+
+if sys.version_info >= (3, 11):
+    import asyncio as async_timeout
+else:
+    import async_timeout
 
 from ...._types import ProxyType
 from ...._helpers import parse_proxy_url
