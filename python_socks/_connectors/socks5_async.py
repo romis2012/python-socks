@@ -86,7 +86,8 @@ class Socks5AsyncConnector(AsyncConnector):
         elif addr_type == socks5.AddressType.IPV6:
             data += await stream.read_exact(18)
         elif addr_type == socks5.AddressType.DOMAIN:
-            host_len, *_ = await stream.read_exact(1)
+            data += await stream.read_exact(1)
+            host_len = data[-1]
             data += await stream.read_exact(host_len + 2)
 
         return data
