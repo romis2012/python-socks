@@ -1,3 +1,4 @@
+from typing import Any, Optional
 import curio
 import curio.io
 
@@ -12,20 +13,19 @@ from ._connect import connect_tcp
 from ..._protocols.errors import ReplyError
 from ..._connectors.factory_async import create_connector
 
-from ... import _abc as abc
 
 DEFAULT_TIMEOUT = 60
 
 
-class CurioProxy(abc.AsyncProxy):
+class CurioProxy:
     def __init__(
         self,
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: str = None,
-        password: str = None,
-        rdns: bool = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        rdns: Optional[bool] = None,
     ):
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -40,11 +40,13 @@ class CurioProxy(abc.AsyncProxy):
         self,
         dest_host: str,
         dest_port: int,
-        timeout: float = None,
-        _socket=None,
+        timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> curio.io.Socket:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
+
+        _socket = kwargs.get('_socket')
 
         try:
             return await curio.timeout_after(
@@ -110,7 +112,7 @@ class CurioProxy(abc.AsyncProxy):
         return self._proxy_port
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs):  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod

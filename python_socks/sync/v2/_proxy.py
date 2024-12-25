@@ -1,10 +1,10 @@
 import socket
 import ssl
+from typing import Optional
 
 from ._connect import connect_tcp
 from ._stream import SyncSocketStream
 from .._resolver import SyncResolver
-from ... import _abc as abc
 from ..._types import ProxyType
 from ..._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 from ..._helpers import parse_proxy_url
@@ -16,17 +16,17 @@ from ..._connectors.factory_sync import create_connector
 DEFAULT_TIMEOUT = 60
 
 
-class SyncProxy(abc.SyncProxy):
+class SyncProxy:
     def __init__(
         self,
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: str = None,
-        password: str = None,
-        rdns: bool = None,
-        proxy_ssl: ssl.SSLContext = None,
-        forward: 'SyncProxy' = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        rdns: Optional[bool] = None,
+        proxy_ssl: Optional[ssl.SSLContext] = None,
+        forward: Optional['SyncProxy'] = None,
     ):
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -43,8 +43,8 @@ class SyncProxy(abc.SyncProxy):
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: ssl.SSLContext = None,
-        timeout: float = None,
+        dest_ssl: Optional[ssl.SSLContext] = None,
+        timeout: Optional[float] = None,
     ) -> SyncSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -109,7 +109,7 @@ class SyncProxy(abc.SyncProxy):
             raise
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs): # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod

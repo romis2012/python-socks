@@ -1,4 +1,5 @@
 import socket
+from typing import Optional
 
 from .._abc import AsyncSocketStream, AsyncResolver
 from .abc import AsyncConnector
@@ -10,8 +11,8 @@ from .._helpers import is_ip_address
 class Socks4AsyncConnector(AsyncConnector):
     def __init__(
         self,
-        user_id: str,
-        rdns: bool,
+        user_id: Optional[str],
+        rdns: Optional[bool],
         resolver: AsyncResolver,
     ):
         if rdns is None:

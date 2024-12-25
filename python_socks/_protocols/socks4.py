@@ -2,6 +2,7 @@ import enum
 import ipaddress
 import socket
 from dataclasses import dataclass
+from typing import Optional
 
 from .errors import ReplyError
 from .._helpers import is_ipv4_address
@@ -38,7 +39,7 @@ ReplyMessages = {
 class ConnectRequest:
     host: str  # hostname or IPv4 address
     port: int
-    user_id: str
+    user_id: Optional[str]
 
     def dumps(self):
         port_bytes = self.port.to_bytes(2, 'big')

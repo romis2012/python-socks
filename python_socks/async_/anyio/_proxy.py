@@ -1,5 +1,5 @@
 import ssl
-from typing import Optional
+from typing import Any, Optional
 
 import anyio
 
@@ -25,10 +25,10 @@ class AnyioProxy:
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: str = None,
-        password: str = None,
-        rdns: bool = None,
-        proxy_ssl: ssl.SSLContext = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        rdns: Optional[bool] = None,
+        proxy_ssl: Optional[ssl.SSLContext] = None,
     ):
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -44,12 +44,14 @@ class AnyioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: ssl.SSLContext = None,
-        timeout: float = None,
-        _stream: AnyioSocketStream = None,
+        dest_ssl: Optional[ssl.SSLContext] = None,
+        timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> AnyioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
+
+        _stream = kwargs.get('_stream')
 
         try:
             with anyio.fail_after(timeout):
@@ -117,7 +119,7 @@ class AnyioProxy:
         return self._proxy_port
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs):  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod

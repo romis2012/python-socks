@@ -1,7 +1,7 @@
 import enum
 import ipaddress
 import socket
-import typing
+from typing import Optional, Union
 from dataclasses import dataclass, field
 
 from .errors import ReplyError
@@ -67,8 +67,8 @@ ReplyMessages = {
 
 @dataclass
 class AuthMethodsRequest:
-    username: str
-    password: str
+    username: Optional[str]
+    password: Optional[str]
     methods: bytearray = field(init=False)
 
     def __post_init__(self):
@@ -260,7 +260,7 @@ class StateServerWaitingForAuth:
 
 @dataclass
 class StateClientAuthenticated:
-    data: typing.Optional[AuthReply] = None
+    data: Optional[AuthReply] = None
 
 
 @dataclass
@@ -278,19 +278,19 @@ class StateServerConnected:
     data: ConnectReply
 
 
-Request = typing.Union[
+Request = Union[
     AuthMethodsRequest,
     AuthRequest,
     ConnectRequest,
 ]
 
-Reply = typing.Union[
+Reply = Union[
     AuthMethodReply,
     AuthReply,
     ConnectReply,
 ]
 
-ConnectionState = typing.Union[
+ConnectionState = Union[
     StateServerWaitingForAuthMethods,
     StateClientSentAuthMethods,
     StateServerWaitingForAuth,

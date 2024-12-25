@@ -1,4 +1,5 @@
 import socket
+from typing import Optional
 
 from .._abc import SyncSocketStream, SyncResolver
 from .abc import SyncConnector
@@ -10,8 +11,8 @@ from .._helpers import is_ip_address
 class Socks4SyncConnector(SyncConnector):
     def __init__(
         self,
-        user_id: str,
-        rdns: bool,
+        user_id: Optional[str],
+        rdns: Optional[bool],
         resolver: SyncResolver,
     ):
         if rdns is None:

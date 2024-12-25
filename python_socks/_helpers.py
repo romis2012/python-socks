@@ -1,12 +1,17 @@
 import functools
 import re
+from typing import Optional, Tuple
 from urllib.parse import urlparse, unquote
 
 from ._types import ProxyType
 
-_ipv4_pattern = (r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
-                 r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
+# pylint:disable-next=invalid-name
+_ipv4_pattern = (
+    r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
+    r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+)
 
+# pylint:disable-next=invalid-name
 _ipv6_pattern = (
     r'^(?:(?:(?:[A-F0-9]{1,4}:){6}|(?=(?:[A-F0-9]{0,4}:){0,6}'
     r'(?:[0-9]{1,3}\.){3}[0-9]{1,3}$)(([0-9A-F]{1,4}:){0,5}|:)'
@@ -15,7 +20,8 @@ _ipv6_pattern = (
     r'(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|(?:[A-F0-9]{1,4}:){7}'
     r'[A-F0-9]{1,4}|(?=(?:[A-F0-9]{0,4}:){0,7}[A-F0-9]{0,4}$)'
     r'(([0-9A-F]{1,4}:){1,7}|:)((:[0-9A-F]{1,4}){1,7}|:)|(?:[A-F0-9]{1,4}:){7}'
-    r':|:(:[A-F0-9]{1,4}){7})$')
+    r':|:(:[A-F0-9]{1,4}){7})$'
+)
 
 _ipv4_regex = re.compile(_ipv4_pattern)
 _ipv6_regex = re.compile(_ipv6_pattern, flags=re.IGNORECASE)
@@ -31,8 +37,9 @@ def _is_ip_address(regex, regexb, host):
     elif isinstance(host, (bytes, bytearray, memoryview)):
         return bool(regexb.match(host))
     else:
-        raise TypeError('{} [{}] is not a str or bytes'  # pragma: no cover
-                        .format(host, type(host)))
+        raise TypeError(
+            '{} [{}] is not a str or bytes'.format(host, type(host))  # pragma: no cover
+        )
 
 
 is_ipv4_address = functools.partial(_is_ip_address, _ipv4_regex, _ipv4_regexb)
@@ -43,7 +50,7 @@ def is_ip_address(host):
     return is_ipv4_address(host) or is_ipv6_address(host)
 
 
-def parse_proxy_url(url):
+def parse_proxy_url(url: str) -> Tuple[ProxyType, str, int, Optional[str], Optional[str]]:
     parsed = urlparse(url)
 
     scheme = parsed.scheme
@@ -62,12 +69,12 @@ def parse_proxy_url(url):
 
     try:
         port = parsed.port
-    except (ValueError, TypeError):  # pragma: no cover
-        raise ValueError('Invalid port component')
+        assert port is not None
+    except (ValueError, TypeError, AssertionError) as e:  # pragma: no cover
+        raise ValueError('Invalid port component') from e
 
     try:
-        username, password = (unquote(parsed.username),
-                              unquote(parsed.password))
+        username, password = (unquote(parsed.username), unquote(parsed.password))
     except (AttributeError, TypeError):
         username, password = '', ''
 

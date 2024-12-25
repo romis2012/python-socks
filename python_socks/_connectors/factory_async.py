@@ -1,3 +1,4 @@
+from typing import Optional
 from .._abc import AsyncResolver
 from .._types import ProxyType
 
@@ -9,9 +10,9 @@ from .http_async import HttpAsyncConnector
 
 def create_connector(
     proxy_type: ProxyType,
-    username: str,
-    password: str,
-    rdns: bool,
+    username: Optional[str],
+    password: Optional[str],
+    rdns: Optional[bool],
     resolver: AsyncResolver,
 ) -> AsyncConnector:
     if proxy_type == ProxyType.SOCKS4:

@@ -1,3 +1,4 @@
+from typing import Optional
 from .._abc import AsyncSocketStream, AsyncResolver
 from .abc import AsyncConnector
 
@@ -7,8 +8,8 @@ from .._protocols import http
 class HttpAsyncConnector(AsyncConnector):
     def __init__(
         self,
-        username: str,
-        password: str,
+        username: Optional[str],
+        password: Optional[str],
         resolver: AsyncResolver,
     ):
         self._username = username

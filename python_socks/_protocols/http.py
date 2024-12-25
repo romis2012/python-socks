@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import base64
 import binascii
 from collections import namedtuple
+from typing import Optional
 
 from .._version import __title__, __version__
 
@@ -88,8 +89,8 @@ class _Buffer:
 class ConnectRequest:
     host: str
     port: int
-    username: str
-    password: str
+    username: Optional[str]
+    password: Optional[str]
 
     def dumps(self) -> bytes:
         buff = _Buffer()

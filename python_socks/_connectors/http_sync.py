@@ -1,3 +1,4 @@
+from typing import Optional
 from .._abc import SyncSocketStream, SyncResolver
 from .abc import SyncConnector
 
@@ -7,8 +8,8 @@ from .._protocols import http
 class HttpSyncConnector(SyncConnector):
     def __init__(
         self,
-        username: str,
-        password: str,
+        username: Optional[str],
+        password: Optional[str],
         resolver: SyncResolver,
     ):
         self._username = username

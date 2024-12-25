@@ -1,3 +1,4 @@
+from typing import Any, Optional
 import trio
 
 from ..._types import ProxyType
@@ -11,20 +12,19 @@ from ._connect import connect_tcp
 from ..._protocols.errors import ReplyError
 from ..._connectors.factory_async import create_connector
 
-from ... import _abc as abc
 
 DEFAULT_TIMEOUT = 60
 
 
-class TrioProxy(abc.AsyncProxy):
+class TrioProxy:
     def __init__(
         self,
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: str = None,
-        password: str = None,
-        rdns: bool = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        rdns: Optional[bool] = None,
     ):
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -39,11 +39,13 @@ class TrioProxy(abc.AsyncProxy):
         self,
         dest_host: str,
         dest_port: int,
-        timeout: float = None,
-        _socket=None,
+        timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> trio.socket.SocketType:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
+
+        _socket = kwargs.get('_socket')
 
         try:
             with trio.fail_after(timeout):
@@ -53,7 +55,9 @@ class TrioProxy(abc.AsyncProxy):
                     _socket=_socket,
                 )
         except trio.TooSlowError as e:
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(
+                'Proxy connection timed out: {}'.format(timeout)
+            ) from e
 
     async def _connect(
         self,
@@ -109,7 +113,7 @@ class TrioProxy(abc.AsyncProxy):
         return self._proxy_port
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs):  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod

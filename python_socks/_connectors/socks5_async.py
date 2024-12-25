@@ -1,4 +1,5 @@
 import socket
+from typing import Optional
 
 from .._abc import AsyncSocketStream, AsyncResolver
 from .abc import AsyncConnector
@@ -10,9 +11,9 @@ from .._helpers import is_ip_address
 class Socks5AsyncConnector(AsyncConnector):
     def __init__(
         self,
-        username: str,
-        password: str,
-        rdns: bool,
+        username: Optional[str],
+        password: Optional[str],
+        rdns: Optional[bool],
         resolver: AsyncResolver,
     ):
         if rdns is None:

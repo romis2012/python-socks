@@ -1,13 +1,9 @@
 import asyncio
 import ssl
+from typing import Optional
 import warnings
 import sys
 
-
-if sys.version_info >= (3, 11):
-    import asyncio as async_timeout
-else:
-    import async_timeout
 
 from ...._types import ProxyType
 from ...._helpers import parse_proxy_url
@@ -20,6 +16,12 @@ from .._resolver import Resolver
 from ._stream import AsyncioSocketStream
 from ._connect import connect_tcp
 
+if sys.version_info >= (3, 11):
+    import asyncio as async_timeout  # pylint:disable=reimported
+else:
+    import async_timeout
+
+
 DEFAULT_TIMEOUT = 60
 
 
@@ -29,12 +31,12 @@ class AsyncioProxy:
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: str = None,
-        password: str = None,
-        rdns: bool = None,
-        proxy_ssl: ssl.SSLContext = None,
-        forward: 'AsyncioProxy' = None,
-        loop: asyncio.AbstractEventLoop = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        rdns: Optional[bool] = None,
+        proxy_ssl: Optional[ssl.SSLContext] = None,
+        forward: Optional['AsyncioProxy'] = None,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if loop is not None:  # pragma: no cover
             warnings.warn(
@@ -64,8 +66,8 @@ class AsyncioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: ssl.SSLContext = None,
-        timeout: float = None,
+        dest_ssl: Optional[ssl.SSLContext] = None,
+        timeout: Optional[float] = None,
     ) -> AsyncioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -78,13 +80,15 @@ class AsyncioProxy:
                     dest_ssl=dest_ssl,
                 )
         except asyncio.TimeoutError as e:
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(
+                'Proxy connection timed out: {}'.format(timeout)
+            ) from e
 
     async def _connect(
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: ssl.SSLContext = None,
+        dest_ssl: Optional[ssl.SSLContext] = None,
     ) -> AsyncioSocketStream:
         if self._forward is None:
             try:
@@ -141,7 +145,7 @@ class AsyncioProxy:
         return stream
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs):  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod

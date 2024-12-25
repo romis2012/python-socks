@@ -1,4 +1,5 @@
 import socket
+from typing import Optional, Any
 
 from .._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 
@@ -11,20 +12,19 @@ from ._stream import SyncSocketStream
 from ._resolver import SyncResolver
 from ._connect import connect_tcp
 
-from .. import _abc as abc
 
 DEFAULT_TIMEOUT = 60
 
 
-class SyncProxy(abc.SyncProxy):
+class SyncProxy:
     def __init__(
         self,
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: str = None,
-        password: str = None,
-        rdns: bool = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        rdns: Optional[bool] = None,
     ):
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -39,11 +39,13 @@ class SyncProxy(abc.SyncProxy):
         self,
         dest_host: str,
         dest_port: int,
-        timeout: float = None,
-        _socket=None,
+        timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> socket.socket:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
+
+        _socket = kwargs.get('_socket')
 
         if _socket is None:
             try:
@@ -79,7 +81,9 @@ class SyncProxy(abc.SyncProxy):
             return _socket
         except socket.timeout as e:
             stream.close()
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(
+                'Proxy connection timed out: {}'.format(timeout)
+            ) from e
         except ReplyError as e:
             stream.close()
             raise ProxyError(e, error_code=e.error_code)
@@ -96,7 +100,7 @@ class SyncProxy(abc.SyncProxy):
         return self._proxy_port
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs):  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod
