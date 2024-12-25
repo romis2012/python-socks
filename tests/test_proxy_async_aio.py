@@ -5,7 +5,6 @@ import pytest  # noqa
 from yarl import URL  # noqa
 
 from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
-from python_socks._abc import AsyncProxy
 from python_socks.async_ import ProxyChain
 from python_socks.async_.asyncio import Proxy
 from python_socks.async_.asyncio._resolver import Resolver
@@ -27,7 +26,7 @@ from tests.config import (
 
 
 async def make_request(
-    proxy: AsyncProxy,
+    proxy: Proxy,
     url: str,
     resolve_host=False,
     timeout=None,

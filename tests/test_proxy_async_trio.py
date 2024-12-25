@@ -4,7 +4,6 @@ import pytest
 from yarl import URL
 
 from python_socks import ProxyType, ProxyError, ProxyTimeoutError, ProxyConnectionError
-from python_socks._abc import AsyncProxy
 from python_socks.async_ import ProxyChain
 from tests.config import (
     PROXY_HOST_IPV4,
@@ -28,7 +27,7 @@ from python_socks.async_.trio._resolver import Resolver  # noqa: E402
 
 
 async def make_request(
-    proxy: AsyncProxy,
+    proxy: Proxy,
     url: str,
     resolve_host=False,
     timeout=None,

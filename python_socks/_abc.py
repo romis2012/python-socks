@@ -1,19 +1,6 @@
 from typing import Optional
 
 
-class AsyncProxy:
-    async def connect(self, dest_host, dest_port, timeout=None, **kwargs):
-        raise NotImplementedError()
-
-    @property
-    def proxy_host(self):
-        raise NotImplementedError()
-
-    @property
-    def proxy_port(self):
-        raise NotImplementedError()
-
-
 class SyncResolver:
     def resolve(self, host, port=0, family=0):
         raise NotImplementedError()

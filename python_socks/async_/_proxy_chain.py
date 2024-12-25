@@ -1,9 +1,8 @@
 from typing import Iterable
-from .. import _abc as abc
 
 
 class ProxyChain:
-    def __init__(self, proxies: Iterable[abc.AsyncProxy]):
+    def __init__(self, proxies: Iterable):
         self._proxies = proxies
 
     async def connect(self, dest_host, dest_port, timeout=None):
