@@ -1,6 +1,66 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'python-socks'
+license = { text = 'Apache-2.0' }
+description = 'Proxy (SOCKS4, SOCKS5, HTTP CONNECT) client for Python'
+readme = 'README.md'
+authors = [{ name = 'Roman Snegirev', email = 'snegiryev@gmail.com' }]
+keywords = [
+    'socks',
+    'socks5',
+    'socks4',
+    'http',
+    'proxy',
+    'asyncio',
+    'trio',
+    'curio',
+    'anyio',
+]
+requires-python = ">=3.8.0"
+dynamic = ['version']
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Internet :: WWW/HTTP",
+    "Intended Audience :: Developers",
+    "Framework :: AsyncIO",
+    "Framework :: Trio",
+    "License :: OSI Approved :: Apache Software License",
+]
+
+[project.optional-dependencies]
+asyncio = ['async-timeout>=4.0; python_version < "3.11"']
+trio = ['trio>=0.24']
+curio = ['curio>=1.4']
+anyio = ['anyio>=3.3.4,<5.0.0']
+
+[project.urls]
+homepage = 'https://github.com/romis2012/python-socks'
+repository = 'https://github.com/romis2012/python-socks'
+
+[tool.setuptools.dynamic]
+version = { attr = 'python_socks.__version__' }
+
+[tool.setuptools.packages.find]
+include = ['python_socks*']
+
 [tool.black]
 line-length = 99
-target-version = ['py37', 'py38', 'py39']
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 skip-string-normalization = true
 preview = true
 verbose = true
