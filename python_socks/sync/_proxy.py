@@ -1,5 +1,6 @@
 import socket
 from typing import Optional, Any
+import warnings
 
 from .._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
 
@@ -46,6 +47,12 @@ class SyncProxy:
             timeout = DEFAULT_TIMEOUT
 
         _socket = kwargs.get('_socket')
+        if _socket is not None:
+            warnings.warn(
+                "The '_socket' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if _socket is None:
             try:
@@ -81,9 +88,7 @@ class SyncProxy:
             return _socket
         except socket.timeout as e:
             stream.close()
-            raise ProxyTimeoutError(
-                'Proxy connection timed out: {}'.format(timeout)
-            ) from e
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
         except ReplyError as e:
             stream.close()
             raise ProxyError(e, error_code=e.error_code)

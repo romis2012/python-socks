@@ -1,4 +1,5 @@
 from typing import Any, Optional
+import warnings
 import trio
 
 from ..._types import ProxyType
@@ -46,6 +47,12 @@ class TrioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _socket = kwargs.get('_socket')
+        if _socket is not None:
+            warnings.warn(
+                "The '_socket' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         try:
             with trio.fail_after(timeout):
@@ -55,9 +62,7 @@ class TrioProxy:
                     _socket=_socket,
                 )
         except trio.TooSlowError as e:
-            raise ProxyTimeoutError(
-                'Proxy connection timed out: {}'.format(timeout)
-            ) from e
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
 
     async def _connect(
         self,

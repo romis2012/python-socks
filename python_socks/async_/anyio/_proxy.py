@@ -1,5 +1,6 @@
 import ssl
 from typing import Any, Optional
+import warnings
 
 import anyio
 
@@ -52,6 +53,12 @@ class AnyioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _stream = kwargs.get('_stream')
+        if _stream is not None:
+            warnings.warn(
+                "The '_stream' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         try:
             with anyio.fail_after(timeout):

@@ -2,6 +2,7 @@ import asyncio
 import socket
 import sys
 from typing import Any, Optional
+import warnings
 
 from ..._types import ProxyType
 from ..._helpers import parse_proxy_url
@@ -58,6 +59,13 @@ class AsyncioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _socket = kwargs.get('_socket')
+        if _socket is not None:
+            warnings.warn(
+                "The '_socket' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         try:
             async with async_timeout.timeout(timeout):
                 return await self._connect(
@@ -131,11 +139,7 @@ class AsyncioProxy:
                 return False
             return isinstance(self._loop, Loop)
 
-        return (
-            sys.version_info[:2] >= (3, 8)
-            or is_proactor_event_loop()
-            or is_uvloop_event_loop()
-        )
+        return sys.version_info[:2] >= (3, 8) or is_proactor_event_loop() or is_uvloop_event_loop()
 
     @property
     def proxy_host(self):

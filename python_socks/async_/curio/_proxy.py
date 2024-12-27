@@ -1,4 +1,5 @@
 from typing import Any, Optional
+import warnings
 import curio
 import curio.io
 
@@ -47,6 +48,12 @@ class CurioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _socket = kwargs.get('_socket')
+        if _socket is not None:
+            warnings.warn(
+                "The '_socket' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         try:
             return await curio.timeout_after(
