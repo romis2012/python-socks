@@ -109,37 +109,12 @@ class AsyncioProxy:
             )
 
             return _socket
-        except asyncio.CancelledError:  # pragma: no cover
-            # https://bugs.python.org/issue30064
-            # https://bugs.python.org/issue34795
-            if self._can_be_closed_safely():
-                await stream.close()
-            raise
         except ReplyError as e:
             await stream.close()
             raise ProxyError(e, error_code=e.error_code)
-        except Exception:  # pragma: no cover
+        except (asyncio.CancelledError, Exception):  # pragma: no cover
             await stream.close()
             raise
-
-    def _can_be_closed_safely(self):  # pragma: no cover
-        def is_proactor_event_loop():
-            try:
-                # pylint:disable-next=import-outside-toplevel
-                from asyncio import ProactorEventLoop
-            except ImportError:
-                return False
-            return isinstance(self._loop, ProactorEventLoop)
-
-        def is_uvloop_event_loop():
-            try:
-                # pylint:disable-next=import-outside-toplevel
-                from uvloop import Loop  # type:ignore[import-not-found]
-            except ImportError:
-                return False
-            return isinstance(self._loop, Loop)
-
-        return sys.version_info[:2] >= (3, 8) or is_proactor_event_loop() or is_uvloop_event_loop()
 
     @property
     def proxy_host(self):
