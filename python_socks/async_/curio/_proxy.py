@@ -123,6 +123,6 @@ class CurioProxy:
         return cls(*args, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, **kwargs):
+    def from_url(cls, url: str, **kwargs) -> 'CurioProxy':
         url_args = parse_proxy_url(url)
         return cls(*url_args, **kwargs)

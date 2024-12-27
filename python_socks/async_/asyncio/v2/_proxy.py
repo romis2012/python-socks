@@ -80,9 +80,7 @@ class AsyncioProxy:
                     dest_ssl=dest_ssl,
                 )
         except asyncio.TimeoutError as e:
-            raise ProxyTimeoutError(
-                'Proxy connection timed out: {}'.format(timeout)
-            ) from e
+            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
 
     async def _connect(
         self,
@@ -149,6 +147,6 @@ class AsyncioProxy:
         return cls(*args, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, **kwargs):
+    def from_url(cls, url: str, **kwargs) -> 'AsyncioProxy':
         url_args = parse_proxy_url(url)
         return cls(*url_args, **kwargs)

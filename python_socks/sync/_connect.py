@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 def connect_tcp(
     host: str,
     port: int,
-    timeout: float = None,
+    timeout: Optional[float] = None,
     local_addr: Optional[Tuple[str, int]] = None,
 ) -> socket.socket:
     address = (host, port)

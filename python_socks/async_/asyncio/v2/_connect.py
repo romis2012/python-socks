@@ -16,7 +16,7 @@ async def connect_tcp(
     reader, writer = await asyncio.open_connection(
         host=host,
         port=port,
-        **kwargs,
+        **kwargs,  # type: ignore
     )
 
     return AsyncioSocketStream(

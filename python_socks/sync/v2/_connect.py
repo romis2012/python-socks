@@ -6,7 +6,7 @@ from ._stream import SyncSocketStream
 def connect_tcp(
     host: str,
     port: int,
-    timeout: float = None,
+    timeout: Optional[float] = None,
     local_addr: Optional[Tuple[str, int]] = None,
 ) -> SyncSocketStream:
     address = (host, port)
