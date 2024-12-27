@@ -1,9 +1,15 @@
 from typing import Sequence
+import warnings
 from ._proxy import TrioProxy
 
 
 class ProxyChain:
     def __init__(self, proxies: Sequence[TrioProxy]):
+        warnings.warn(
+            'This implementation of ProxyChain is deprecated and will be removed in the future',
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._proxies = proxies
 
     async def connect(

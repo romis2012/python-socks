@@ -109,7 +109,7 @@ class SyncProxy:
             raise
 
     @classmethod
-    def create(cls, *args, **kwargs): # for backward compatibility
+    def create(cls, *args, **kwargs):  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod
