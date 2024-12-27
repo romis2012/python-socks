@@ -54,12 +54,14 @@ class TrioProxy:
                 stacklevel=2,
             )
 
+        local_addr = kwargs.get('local_addr')
         try:
             with trio.fail_after(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
                     _socket=_socket,
+                    local_addr=local_addr,
                 )
         except trio.TooSlowError as e:
             raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
@@ -69,12 +71,14 @@ class TrioProxy:
         dest_host: str,
         dest_port: int,
         _socket=None,
+        local_addr=None,
     ) -> trio.socket.SocketType:
         if _socket is None:
             try:
                 _socket = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 msg = 'Could not connect to proxy {}:{} [{}]'.format(

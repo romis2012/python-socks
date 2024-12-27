@@ -1,6 +1,6 @@
 import asyncio
 import ssl
-from typing import Optional
+from typing import Any, Optional, Tuple
 import warnings
 import sys
 
@@ -68,16 +68,19 @@ class AsyncioProxy:
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> AsyncioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
+        local_addr = kwargs.get('local_addr')
         try:
             async with async_timeout.timeout(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
                     dest_ssl=dest_ssl,
+                    local_addr=local_addr,
                 )
         except asyncio.TimeoutError as e:
             raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
@@ -87,6 +90,7 @@ class AsyncioProxy:
         dest_host: str,
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
+        local_addr: Optional[Tuple[str, int]] = None,
     ) -> AsyncioSocketStream:
         if self._forward is None:
             try:
@@ -94,6 +98,7 @@ class AsyncioProxy:
                     host=self._proxy_host,
                     port=self._proxy_port,
                     loop=self._loop,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 raise ProxyConnectionError(

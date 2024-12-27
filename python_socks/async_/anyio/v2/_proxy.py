@@ -1,5 +1,5 @@
 import ssl
-from typing import Optional
+from typing import Any, Optional
 
 import anyio
 
@@ -47,16 +47,19 @@ class AnyioProxy:
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> AnyioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
+        local_host = kwargs.get('local_host')
         try:
             with anyio.fail_after(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
                     dest_ssl=dest_ssl,
+                    local_host=local_host,
                 )
         except TimeoutError as e:
             raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
@@ -66,12 +69,14 @@ class AnyioProxy:
         dest_host: str,
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
+        local_host: Optional[str] = None,
     ) -> AnyioSocketStream:
         if self._forward is None:
             try:
                 stream = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
+                    local_host=local_host,
                 )
             except OSError as e:
                 raise ProxyConnectionError(

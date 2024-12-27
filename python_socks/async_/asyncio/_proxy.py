@@ -66,23 +66,32 @@ class AsyncioProxy:
                 stacklevel=2,
             )
 
+        local_addr = kwargs.get('local_addr')
         try:
             async with async_timeout.timeout(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
                     _socket=_socket,
+                    local_addr=local_addr,
                 )
         except asyncio.TimeoutError as e:
             raise ProxyTimeoutError(f'Proxy connection timed out: {timeout}') from e
 
-    async def _connect(self, dest_host, dest_port, _socket=None) -> socket.socket:
+    async def _connect(
+        self,
+        dest_host,
+        dest_port,
+        _socket=None,
+        local_addr=None,
+    ) -> socket.socket:
         if _socket is None:
             try:
                 _socket = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     loop=self._loop,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 msg = 'Could not connect to proxy {}:{} [{}]'.format(

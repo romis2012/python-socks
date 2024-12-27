@@ -1,5 +1,5 @@
 import ssl
-from typing import Optional
+from typing import Any, Optional
 
 import trio
 
@@ -47,16 +47,19 @@ class TrioProxy:
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> TrioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
+        local_addr = kwargs.get('local_addr')
         try:
             with trio.fail_after(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
                     dest_ssl=dest_ssl,
+                    local_addr=local_addr,
                 )
         except trio.TooSlowError as e:
             raise ProxyTimeoutError(f'Proxy connection timed out: {timeout}') from e
@@ -66,12 +69,14 @@ class TrioProxy:
         dest_host: str,
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
+        local_addr: Optional[str] = None,
     ) -> TrioSocketStream:
         if self._forward is None:
             try:
                 stream = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 raise ProxyConnectionError(

@@ -60,6 +60,7 @@ class AnyioProxy:
                 stacklevel=2,
             )
 
+        local_host = kwargs.get('local_host')
         try:
             with anyio.fail_after(timeout):
                 if _stream is None:
@@ -68,6 +69,7 @@ class AnyioProxy:
                             await connect_tcp(
                                 host=self._proxy_host,
                                 port=self._proxy_port,
+                                local_host=local_host,
                             )
                         )
                     except OSError as e:

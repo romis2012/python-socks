@@ -55,11 +55,13 @@ class SyncProxy:
             )
 
         if _socket is None:
+            local_addr = kwargs.get('local_addr')
             try:
                 _socket = connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     timeout=timeout,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 msg = 'Could not connect to proxy {}:{} [{}]'.format(

@@ -1,6 +1,6 @@
 import socket
 import ssl
-from typing import Optional
+from typing import Any, Optional
 
 from ._connect import connect_tcp
 from ._stream import SyncSocketStream
@@ -45,16 +45,19 @@ class SyncProxy:
         dest_port: int,
         dest_ssl: Optional[ssl.SSLContext] = None,
         timeout: Optional[float] = None,
+        **kwargs: Any,
     ) -> SyncSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
         if self._forward is None:
+            local_addr = kwargs.get('local_addr')
             try:
                 stream = connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     timeout=timeout,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 msg = 'Could not connect to proxy {}:{} [{}]'.format(

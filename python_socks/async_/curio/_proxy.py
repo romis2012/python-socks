@@ -55,6 +55,7 @@ class CurioProxy:
                 stacklevel=2,
             )
 
+        local_addr = kwargs.get('local_addr')
         try:
             return await curio.timeout_after(
                 timeout,
@@ -62,6 +63,7 @@ class CurioProxy:
                 dest_host,
                 dest_port,
                 _socket,
+                local_addr,
             )
         except curio.TaskTimeout as e:
             raise ProxyTimeoutError(f'Proxy connection timed out: {timeout}') from e
@@ -71,12 +73,14 @@ class CurioProxy:
         dest_host: str,
         dest_port: int,
         _socket=None,
+        local_addr=None,
     ):
         if _socket is None:
             try:
                 _socket = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
+                    local_addr=local_addr,
                 )
             except OSError as e:
                 msg = 'Could not connect to proxy {}:{} [{}]'.format(
