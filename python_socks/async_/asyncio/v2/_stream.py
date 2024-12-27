@@ -6,48 +6,10 @@ from .... import _abc as abc
 DEFAULT_RECEIVE_SIZE = 65536
 
 
-# noinspection PyUnusedLocal
-async def backport_start_tls(
-    transport,
-    protocol,
-    ssl_context,
-    *,
-    server_side=False,
-    server_hostname=None,
-    ssl_handshake_timeout=None,
-):  # pragma: no cover
-    """
-    Python 3.6 asyncio doesn't have a start_tls() method on the loop,
-    so we use this function in place of the loop's start_tls() method.
-    Adapted from this comment:
-    https://github.com/urllib3/urllib3/issues/1323#issuecomment-362494839
-    """
-    import asyncio.sslproto
-
-    loop = asyncio.get_event_loop()
-    waiter = loop.create_future()
-    ssl_protocol = asyncio.sslproto.SSLProtocol(
-        loop,
-        protocol,
-        ssl_context,
-        waiter,
-        server_side=False,
-        server_hostname=server_hostname,
-        call_connection_made=False,
-    )
-
-    transport.set_protocol(ssl_protocol)
-    loop.call_soon(ssl_protocol.connection_made, transport)
-    loop.call_soon(transport.resume_reading)  # type: ignore
-
-    await waiter
-    return ssl_protocol._app_transport  # noqa
-
-
 class AsyncioSocketStream(abc.AsyncSocketStream):
-    _loop: asyncio.AbstractEventLoop = None
-    _reader: asyncio.StreamReader = None
-    _writer: asyncio.StreamWriter = None
+    _loop: asyncio.AbstractEventLoop
+    _reader: asyncio.StreamReader
+    _writer: asyncio.StreamWriter
 
     def __init__(
         self,
@@ -86,9 +48,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
 
-        loop_start_tls = getattr(self._loop, 'start_tls', backport_start_tls)
-
-        transport = await loop_start_tls(
+        transport: asyncio.Transport = await self._loop.start_tls(
             self._writer.transport,  # type: ignore
             protocol,
             ssl_context,
@@ -115,7 +75,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         # When we return a new SocketStream with new StreamReader/StreamWriter instances
         # we need to keep references to the old StreamReader/StreamWriter so that they
         # are not garbage collected and closed while we're still using them.
-        stream._inner = self  # type: ignore
+        stream._inner = self  # type: ignore # pylint:disable=W0212,W0201
         return stream
 
     async def close(self):
