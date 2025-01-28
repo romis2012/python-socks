@@ -4,7 +4,7 @@ class ProxyError(Exception):
         self.error_code = error_code
 
 
-class ProxyTimeoutError(Exception):
+class ProxyTimeoutError(TimeoutError):
     pass
 
 
