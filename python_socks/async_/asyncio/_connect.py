@@ -25,7 +25,11 @@ async def connect_tcp(
     else:
         address = (host, port)  # type: ignore[assignment]
 
-    await loop.sock_connect(sock=sock, address=address)
+    try:
+        await loop.sock_connect(sock=sock, address=address)
+    except OSError:
+        sock.close()
+        raise
     return sock
 
 
