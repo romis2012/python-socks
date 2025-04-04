@@ -95,8 +95,6 @@ class ConnectRequest:
     def dumps(self) -> bytes:
         buff = _Buffer()
         buff.append_line(f'CONNECT {self.host}:{self.port} HTTP/1.1')
-        buff.append_line(f'Host: {self.host}:{self.port}')
-        buff.append_line(f'User-Agent: {DEFAULT_USER_AGENT}')
 
         if self.username and self.password:
             auth = BasicAuth(self.username, self.password)
