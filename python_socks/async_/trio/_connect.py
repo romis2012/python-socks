@@ -18,7 +18,11 @@ async def connect_tcp(
     if local_addr is not None:  # pragma: no cover
         await sock.bind(local_addr)
 
-    await sock.connect((host, port))
+    try:
+        await sock.connect((host, port))
+    except OSError:
+        sock.close()
+        raise
     return sock
 
 
