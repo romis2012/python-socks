@@ -3,6 +3,7 @@
 [![CI](https://github.com/romis2012/python-socks/actions/workflows/ci.yml/badge.svg)](https://github.com/romis2012/python-socks/actions/workflows/ci.yml)
 [![Coverage Status](https://codecov.io/gh/romis2012/python-socks/branch/master/graph/badge.svg)](https://codecov.io/gh/romis2012/python-socks)
 [![PyPI version](https://badge.fury.io/py/python-socks.svg)](https://pypi.python.org/pypi/python-socks)
+[![versions](https://img.shields.io/pypi/pyversions/python-socks.svg)](https://github.com/romis2012/python-socks)
 <!--
 [![Downloads](https://pepy.tech/badge/python-socks/month)](https://pepy.tech/project/python-socks)
 -->
