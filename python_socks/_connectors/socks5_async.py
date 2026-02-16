@@ -72,7 +72,7 @@ class Socks5AsyncConnector(AsyncConnector):
 
     # noinspection PyMethodMayBeStatic
     async def _read_reply(self, stream: AsyncSocketStream) -> bytes:
-        data = await stream.read_exact(4)
+        data = await stream.read_exact(3)
         if data[0] != socks5.SOCKS_VER:
             return data
         if data[1] != socks5.ReplyCode.SUCCEEDED:
@@ -80,6 +80,7 @@ class Socks5AsyncConnector(AsyncConnector):
         if data[2] != socks5.RSV:
             return data
 
+        data += await stream.read_exact(1)
         addr_type = data[3]
 
         if addr_type == socks5.AddressType.IPV4:
