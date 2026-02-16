@@ -63,7 +63,7 @@ class Socks5SyncConnector(SyncConnector):
 
     # noinspection PyMethodMayBeStatic
     def _read_reply(self, stream: SyncSocketStream) -> bytes:
-        data = stream.read_exact(4)
+        data = stream.read_exact(3)
         if data[0] != socks5.SOCKS_VER:
             return data
         if data[1] != socks5.ReplyCode.SUCCEEDED:
@@ -71,6 +71,7 @@ class Socks5SyncConnector(SyncConnector):
         if data[2] != socks5.RSV:
             return data
 
+        data += stream.read_exact(1)
         addr_type = data[3]
 
         if addr_type == socks5.AddressType.IPV4:
