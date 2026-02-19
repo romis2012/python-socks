@@ -1,12 +1,12 @@
 import enum
+from functools import singledispatchmethod
 import ipaddress
 import socket
-from typing import Optional, Union
+from typing import Optional, Type, Union
 from dataclasses import dataclass, field
 
 from .errors import ReplyError
 from .._helpers import is_ip_address
-
 
 RSV = NULL = AUTH_GRANTED = 0x00
 SOCKS_VER = 0x05
@@ -302,34 +302,36 @@ ConnectionState = Union[
 
 
 class Connection:
-    _state: ConnectionState
-
     def __init__(self):
         self._state = StateServerWaitingForAuthMethods()
 
+    @singledispatchmethod
     def send(self, request: Request) -> bytes:
-        if type(request) is AuthMethodsRequest:
-            if type(self._state) is not StateServerWaitingForAuthMethods:
-                raise RuntimeError('Server is not currently waiting for auth methods')
-            self._state = StateClientSentAuthMethods(request)
-            return request.dumps()
+        raise RuntimeError(f'Invalid request type: {request.__class__}')
 
-        if type(request) is AuthRequest:
-            if type(self._state) is not StateServerWaitingForAuth:
-                raise RuntimeError('Server is not currently waiting for authentication')
-            self._state = StateClientSentAuthRequest(request)
-            return request.dumps()
+    @send.register
+    def _send_auth_methods(self, request: AuthMethodsRequest) -> bytes:
+        if not self._state_is(StateServerWaitingForAuthMethods):
+            raise RuntimeError('Server is not currently waiting for auth methods')
+        self._state = StateClientSentAuthMethods(request)
+        return request.dumps()
 
-        if type(request) is ConnectRequest:
-            if type(self._state) is not StateClientAuthenticated:
-                raise RuntimeError('Client is not authenticated')
-            self._state = StateClientSentConnectRequest(request)
-            return request.dumps()
+    @send.register
+    def _send_auth(self, request: AuthRequest) -> bytes:
+        if not self._state_is(StateServerWaitingForAuth):
+            raise RuntimeError('Server is not currently waiting for authentication')
+        self._state = StateClientSentAuthRequest(request)
+        return request.dumps()
 
-        raise RuntimeError(f'Invalid request type: {type(request)}')
+    @send.register
+    def _send_connect(self, request: ConnectRequest) -> bytes:
+        if not self._state_is(StateClientAuthenticated):
+            raise RuntimeError('Client is not authenticated')
+        self._state = StateClientSentConnectRequest(request)
+        return request.dumps()
 
     def receive(self, data: bytes) -> Reply:
-        if type(self._state) is StateClientSentAuthMethods:
+        if self._state_is(StateClientSentAuthMethods):
             reply = AuthMethodReply.loads(data)
             reply.validate(self._state.data)
             if reply.method == AuthMethod.USERNAME_PASSWORD:
@@ -338,17 +340,20 @@ class Connection:
                 self._state = StateClientAuthenticated()
             return reply
 
-        if type(self._state) is StateClientSentAuthRequest:
+        if self._state_is(StateClientSentAuthRequest):
             reply = AuthReply.loads(data)
             self._state = StateClientAuthenticated(data=reply)
             return reply
 
-        if type(self._state) is StateClientSentConnectRequest:
+        if self._state_is(StateClientSentConnectRequest):
             reply = ConnectReply.loads(data)
             self._state = StateServerConnected(data=reply)
             return reply
 
         raise RuntimeError(f'Invalid connection state: {self._state}')
+
+    def _state_is(self, state_cls: Type[ConnectionState]):
+        return self.state.__class__ is state_cls
 
     @property
     def state(self):
