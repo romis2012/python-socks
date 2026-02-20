@@ -331,6 +331,8 @@ class Connection:
         return request.dumps()
 
     def receive(self, data: bytes) -> Reply:
+        reply: Reply
+
         if self._state_is(StateClientSentAuthMethods):
             reply = AuthMethodReply.loads(data)
             reply.validate(self._state.data)
