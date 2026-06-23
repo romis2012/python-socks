@@ -6,6 +6,7 @@ from collections import namedtuple
 from typing import Optional
 
 from .._version import __title__, __version__
+from .._helpers import is_ipv6_address
 
 from .errors import ReplyError
 
@@ -94,8 +95,17 @@ class ConnectRequest:
 
     def dumps(self) -> bytes:
         buff = _Buffer()
-        buff.append_line(f'CONNECT {self.host}:{self.port} HTTP/1.1')
-        buff.append_line(f'Host: {self.host}:{self.port}')
+        # RFC 3986 § 3.2.2 / RFC 7230 § 5.4: a literal IPv6 address in an
+        # authority component must be enclosed in square brackets so the
+        # `:` between literal and port is unambiguous. Without brackets,
+        # `2001:db8::1:443` could be parsed as either the address
+        # `2001:db8::1` with port `443` or the address `2001:db8::1:443`
+        # with no port — proxies disagree, and several misroute the
+        # unbracketed form (typically returning `200 Connection
+        # established` against a connection that was never actually made).
+        host = f'[{self.host}]' if is_ipv6_address(self.host) else self.host
+        buff.append_line(f'CONNECT {host}:{self.port} HTTP/1.1')
+        buff.append_line(f'Host: {host}:{self.port}')
         buff.append_line(f'User-Agent: {DEFAULT_USER_AGENT}')
 
         if self.username and self.password:
