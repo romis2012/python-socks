@@ -141,18 +141,6 @@ def patch_resolvers():
         )
 
     try:
-        # noinspection PyProtectedMember
-        from python_socks.async_.curio._resolver import Resolver as CurioResolver
-    except ImportError:
-        p4 = nullcontext()
-    else:
-        p4 = mock.patch.object(
-            CurioResolver,
-            attribute='resolve',
-            new=async_resolve_factory(CurioResolver),
-        )
-
-    try:
         from python_socks.async_.anyio._resolver import Resolver as AnyioResolver
     except ImportError:
         p5 = nullcontext()
@@ -163,7 +151,7 @@ def patch_resolvers():
             new=async_resolve_factory(AnyioResolver),
         )
 
-    with p1, p2, p3, p4, p5:
+    with p1, p2, p3, p5:
         yield None
 
 

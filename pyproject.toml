@@ -1,10 +1,10 @@
 [build-system]
-requires = ['setuptools']
+requires = ['setuptools >= 77.0']
 build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'python-socks'
-license = { text = 'Apache-2.0' }
+license = 'Apache-2.0'
 description = 'Proxy (SOCKS4, SOCKS5, HTTP CONNECT) client for Python'
 readme = 'README.md'
 authors = [{ name = 'Roman Snegirev', email = 'snegiryev@gmail.com' }]
@@ -16,17 +16,15 @@ keywords = [
     'proxy',
     'asyncio',
     'trio',
-    'curio',
     'anyio',
 ]
-requires-python = ">=3.8.0"
+requires-python = ">=3.9.0"
 dynamic = ['version']
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -40,13 +38,11 @@ classifiers = [
     "Intended Audience :: Developers",
     "Framework :: AsyncIO",
     "Framework :: Trio",
-    "License :: OSI Approved :: Apache Software License",
 ]
 
 [project.optional-dependencies]
 asyncio = ['async-timeout>=4.0; python_version < "3.11"']
 trio = ['trio>=0.24']
-curio = ['curio>=1.4']
 anyio = ['anyio>=3.3.4,<5.0.0']
 
 [project.urls]

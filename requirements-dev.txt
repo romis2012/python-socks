@@ -6,7 +6,6 @@ trustme>=0.9.0
 trio>=0.24.0
 pytest-trio>=0.8.0
 attrs>=22.1.0
-curio>=1.4; python_version < "3.12" # https://github.com/dabeaz/curio/issues/367
 anyio>=3.3.4,<5.0.0
 yarl>=1.4.2
 async-timeout>=4.0.0; python_version < "3.11"

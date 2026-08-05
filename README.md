@@ -9,16 +9,15 @@
 -->
 
 The `python-socks` package provides a core proxy client functionality for Python.
-Supports `SOCKS4(a)`, `SOCKS5(h)`, `HTTP CONNECT` proxy and provides sync and async (asyncio, trio, curio, anyio) APIs.
+Supports `SOCKS4(a)`, `SOCKS5(h)`, `HTTP CONNECT` proxy and provides sync and async (asyncio, trio, anyio) APIs.
 You probably don't need to use `python-socks` directly. 
 It is used internally by 
 [aiohttp-socks](https://github.com/romis2012/aiohttp-socks) and [httpx-socks](https://github.com/romis2012/httpx-socks) packages.  
 
 ## Requirements
-- Python >= 3.8
+- Python >= 3.9
 - async-timeout >= 4.0 (optional)
 - trio >= 0.24 (optional)
-- curio >= 1.4 (optional)
 - anyio >= 3.3.4 (optional)
 
 ## Installation
@@ -36,11 +35,6 @@ pip install python-socks[asyncio]
 to include optional trio support:
 ```
 pip install python-socks[trio]
-```
-
-to include optional curio support:
-```
-pip install python-socks[curio]
 ```
 
 to include optional anyio support:
@@ -135,38 +129,6 @@ request = (
 
 await stream.send_all(request)
 response = await stream.receive_some(4096)
-print(response)
-```
-
-#### Async (curio)
-```python
-import curio.ssl as curiossl
-from python_socks.async_.curio import Proxy
-
-proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
-# `connect` returns curio.io.Socket
-sock = await proxy.connect(
-    dest_host='check-host.net',
-    dest_port=443
-)
-
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
-
-ssl_context = curiossl.create_default_context()
-sock = await ssl_context.wrap_socket(
-    sock, do_handshake_on_connect=False, server_hostname='check-host.net'
-)
-
-await sock.do_handshake()
-
-stream = sock.as_stream()
-
-await stream.write(request)
-response = await stream.read(1024)
 print(response)
 ```
 

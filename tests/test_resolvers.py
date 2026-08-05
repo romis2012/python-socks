@@ -78,22 +78,3 @@ async def test_anyio_resolver():
         family, host = await resolver.resolve(host=TEST_HOST_NAME)
         assert family == RET_FAMILY
         assert host == RET_HOST
-
-
-def test_curio_resolver():
-    curio = pytest.importorskip('curio')
-    from python_socks.async_.curio._resolver import Resolver as CurioResolver
-
-    getaddrinfo = MagicMock()
-    getaddrinfo.return_value = get_value_async()
-    to_patch = 'python_socks.async_.curio._resolver.getaddrinfo'
-
-    async def run():
-        # with patch(to_patch, return_value=get_value_async()):
-        with patch(to_patch, new=getaddrinfo):
-            resolver = CurioResolver()
-            family, host = await resolver.resolve(host=TEST_HOST_NAME)
-            assert family == RET_FAMILY
-            assert host == RET_HOST
-
-    curio.run(run)
