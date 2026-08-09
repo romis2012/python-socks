@@ -1,18 +1,18 @@
-from typing import Optional
+from __future__ import annotations
+
 from .._abc import AsyncResolver
 from .._types import ProxyType
-
 from .abc import AsyncConnector
-from .socks5_async import Socks5AsyncConnector
-from .socks4_async import Socks4AsyncConnector
 from .http_async import HttpAsyncConnector
+from .socks4_async import Socks4AsyncConnector
+from .socks5_async import Socks5AsyncConnector
 
 
 def create_connector(
     proxy_type: ProxyType,
-    username: Optional[str],
-    password: Optional[str],
-    rdns: Optional[bool],
+    username: str | None,
+    password: str | None,
+    rdns: bool | None,  # noqa: FBT001
     resolver: AsyncResolver,
 ) -> AsyncConnector:
     if proxy_type == ProxyType.SOCKS4:
@@ -37,4 +37,4 @@ def create_connector(
             resolver=resolver,
         )
 
-    raise ValueError(f'Invalid proxy type: {proxy_type}')
+    raise ValueError(f"Invalid proxy type: {proxy_type}")

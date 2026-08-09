@@ -40,4 +40,6 @@ virtualenv.py
 .develop
 .idea/
 .vscode/
+.zed/
 usage*.py
+ci.md

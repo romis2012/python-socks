@@ -1,12 +1,18 @@
-from typing import Iterable
+from __future__ import annotations
+
+import ssl
 import warnings
+from collections.abc import Iterable
+
 from ._proxy import AnyioProxy
+from ._stream import AnyioSocketStream
 
 
 class ProxyChain:
-    def __init__(self, proxies: Iterable[AnyioProxy]):
+    def __init__(self, proxies: Iterable[AnyioProxy]) -> None:
         warnings.warn(
-            'This implementation of ProxyChain is deprecated and will be removed in the future',
+            "This implementation of ProxyChain is deprecated "
+            "and will be removed in the future",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -14,11 +20,11 @@ class ProxyChain:
 
     async def connect(
         self,
-        dest_host,
-        dest_port,
-        dest_ssl=None,
-        timeout=None,
-    ):
+        dest_host: str,
+        dest_port: int,
+        dest_ssl: ssl.SSLContext | None = None,
+        timeout: float | None = None,
+    ) -> AnyioSocketStream:
         _stream = None
         proxies = list(self._proxies)
 

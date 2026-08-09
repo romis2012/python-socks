@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import socket
-from typing import Optional, Tuple
+
 from ._stream import SyncSocketStream
 
 
 def connect_tcp(
     host: str,
     port: int,
-    timeout: Optional[float] = None,
-    local_addr: Optional[Tuple[str, int]] = None,
+    timeout: float | None = None,
+    local_addr: tuple[str, int] | None = None,
 ) -> SyncSocketStream:
     address = (host, port)
     sock = socket.create_connection(

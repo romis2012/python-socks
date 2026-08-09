@@ -1,20 +1,20 @@
+from __future__ import annotations
+
 import socket
-from typing import Optional
 
-from .._abc import SyncSocketStream, SyncResolver
-from .abc import SyncConnector
-
-from .._protocols import socks4
+from .._abc import SyncResolver, SyncSocketStream
 from .._helpers import is_ip_address
+from .._protocols import socks4
+from .abc import SyncConnector
 
 
 class Socks4SyncConnector(SyncConnector):
     def __init__(
         self,
-        user_id: Optional[str],
-        rdns: Optional[bool],
+        user_id: str | None,
+        rdns: bool | None,  # noqa: FBT001
         resolver: SyncResolver,
-    ):
+    ) -> None:
         if rdns is None:
             rdns = False
 

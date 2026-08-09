@@ -1,23 +1,22 @@
+from __future__ import annotations
+
 import asyncio
 import ssl
-from typing import Any, Optional, Tuple
-import warnings
 import sys
+import warnings
+from typing import Any
 
-
-from ...._types import ProxyType
-from ...._helpers import parse_proxy_url
-from ...._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
-
-from ...._protocols.errors import ReplyError
 from ...._connectors.factory_async import create_connector
-
+from ...._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from ...._helpers import parse_proxy_url
+from ...._protocols.errors import ReplyError
+from ...._types import ProxyType
 from .._resolver import Resolver
-from ._stream import AsyncioSocketStream
 from ._connect import connect_tcp
+from ._stream import AsyncioSocketStream
 
 if sys.version_info >= (3, 11):
-    import asyncio as async_timeout  # pylint:disable=reimported
+    import asyncio as async_timeout
 else:
     import async_timeout
 
@@ -26,21 +25,22 @@ DEFAULT_TIMEOUT = 60
 
 
 class AsyncioProxy:
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0917
         self,
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        rdns: Optional[bool] = None,
-        proxy_ssl: Optional[ssl.SSLContext] = None,
-        forward: Optional['AsyncioProxy'] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-    ):
+        username: str | None = None,
+        password: str | None = None,
+        rdns: bool | None = None,  # noqa: FBT001
+        proxy_ssl: ssl.SSLContext | None = None,
+        forward: AsyncioProxy | None = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+    ) -> None:
         if loop is not None:  # pragma: no cover
             warnings.warn(
-                'The loop argument is deprecated and scheduled for removal in the future.',
+                "The loop argument is deprecated "
+                "and scheduled for removal in the future.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -66,14 +66,14 @@ class AsyncioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: Optional[ssl.SSLContext] = None,
-        timeout: Optional[float] = None,
+        dest_ssl: ssl.SSLContext | None = None,
+        timeout: float | None = None,
         **kwargs: Any,
     ) -> AsyncioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        local_addr = kwargs.get('local_addr')
+        local_addr = kwargs.get("local_addr")
         try:
             async with async_timeout.timeout(timeout):
                 return await self._connect(
@@ -83,14 +83,14 @@ class AsyncioProxy:
                     local_addr=local_addr,
                 )
         except asyncio.TimeoutError as e:
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e
 
     async def _connect(
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: Optional[ssl.SSLContext] = None,
-        local_addr: Optional[Tuple[str, int]] = None,
+        dest_ssl: ssl.SSLContext | None = None,
+        local_addr: tuple[str, int] | None = None,
     ) -> AsyncioSocketStream:
         if self._forward is None:
             try:
@@ -140,7 +140,7 @@ class AsyncioProxy:
                 )
         except ReplyError as e:
             await stream.close()
-            raise ProxyError(e, error_code=e.error_code)
+            raise ProxyError(e, error_code=e.error_code) from e
         except (asyncio.CancelledError, Exception):
             await stream.close()
             raise
@@ -148,10 +148,12 @@ class AsyncioProxy:
         return stream
 
     @classmethod
-    def create(cls, *args, **kwargs):  # for backward compatibility
+    def create(
+        cls, *args: Any, **kwargs: Any
+    ) -> AsyncioProxy:  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, **kwargs) -> 'AsyncioProxy':
+    def from_url(cls, url: str, **kwargs: Any) -> AsyncioProxy:
         url_args = parse_proxy_url(url)
         return cls(*url_args, **kwargs)

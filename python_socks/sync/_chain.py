@@ -1,18 +1,28 @@
-from typing import Iterable
+from __future__ import annotations
+
+import socket
 import warnings
+from collections.abc import Iterable
+
 from ._proxy import SyncProxy
 
 
 class ProxyChain:
-    def __init__(self, proxies: Iterable[SyncProxy]):
+    def __init__(self, proxies: Iterable[SyncProxy]) -> None:
         warnings.warn(
-            'This implementation of ProxyChain is deprecated and will be removed in the future',
+            "This implementation of ProxyChain is deprecated "
+            "and will be removed in the future",
             DeprecationWarning,
             stacklevel=2,
         )
         self._proxies = proxies
 
-    def connect(self, dest_host, dest_port, timeout=None):
+    def connect(
+        self,
+        dest_host: str,
+        dest_port: int,
+        timeout: float | None = None,
+    ) -> socket.socket:
         curr_socket = None
         proxies = list(self._proxies)
 
@@ -26,7 +36,10 @@ class ProxyChain:
             )
 
         curr_socket = proxies[length].connect(
-            dest_host=dest_host, dest_port=dest_port, timeout=timeout, _socket=curr_socket
+            dest_host=dest_host,
+            dest_port=dest_port,
+            timeout=timeout,
+            _socket=curr_socket,
         )
 
         return curr_socket

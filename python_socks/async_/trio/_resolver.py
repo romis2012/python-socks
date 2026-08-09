@@ -1,10 +1,18 @@
+import socket
+
 import trio
 
 from ... import _abc as abc
+from ..._types import ResolvedAddress
 
 
 class Resolver(abc.AsyncResolver):
-    async def resolve(self, host, port=0, family=trio.socket.AF_UNSPEC):
+    async def resolve(
+        self,
+        host: str,
+        port: int = 0,
+        family: socket.AddressFamily = trio.socket.AF_UNSPEC,
+    ) -> ResolvedAddress:
         infos = await trio.socket.getaddrinfo(
             host=host,
             port=port,
@@ -13,9 +21,9 @@ class Resolver(abc.AsyncResolver):
         )
 
         if not infos:  # pragma: no cover
-            raise OSError('Can`t resolve address {}:{} [{}]'.format(host, port, family))
+            raise OSError(f"Can`t resolve address {host}:{port} [{family}]")
 
         infos = sorted(infos, key=lambda info: info[0])
 
         family, _, _, _, address = infos[0]
-        return family, address[0]
+        return family, address[0]  # type:ignore[return-value]

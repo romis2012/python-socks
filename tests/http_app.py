@@ -1,22 +1,25 @@
-import ssl
-import flask  # noqa
-from flask import request  # noqa
+import asyncio
 
-app = flask.Flask(__name__)
-
-
-@app.route('/ip')
-def ip():
-    return request.remote_addr
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+from starlette.routing import Route
 
 
-def run_app(host: str, port: int, certfile: str = None, keyfile: str = None):
-    if certfile and keyfile:
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-        ssl_context.load_cert_chain(certfile, keyfile)
-    else:
-        ssl_context = None
+async def ip(request: Request) -> PlainTextResponse:
+    return PlainTextResponse(content=request.client.host)  # type:ignore[union-attr]
 
-    print('Starting http server on {}:{}...'.format(host, port))
-    app.run(debug=False, host=host, port=port, threaded=True,
-            ssl_context=ssl_context)
+
+async def delay(request: Request) -> PlainTextResponse:
+    seconds = request.path_params["seconds"]
+    await asyncio.sleep(seconds)
+    return PlainTextResponse(content="ok")
+
+
+app = Starlette(
+    debug=True,
+    routes=[
+        Route("/ip", ip),
+        Route("/delay/{seconds:int}", delay),
+    ],
+)

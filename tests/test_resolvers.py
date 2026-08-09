@@ -1,65 +1,71 @@
+from __future__ import annotations
+
+import asyncio
 import socket
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import patch
 
 import pytest
 
 from python_socks.async_.asyncio._resolver import Resolver as AsyncioResolver
 from python_socks.sync._resolver import SyncResolver
+from tests.mocks import AddrInfo
+from tests.patches import (
+    patch_asyncio_getaddrinfo,
+    patch_sync_getaddrinfo,
+)
 
 RET_FAMILY = socket.AF_INET
-RET_HOST = '127.0.0.1'
-
-RET_VALUE = [(
-    RET_FAMILY,
-    socket.SOCK_STREAM,
-    6,
-    '',
-    (RET_HOST, 0)
-)]
+RET_HOST = "127.0.0.1"
+RET_VALUE: AddrInfo = [(RET_FAMILY, socket.SOCK_STREAM, 6, "", (RET_HOST, 0))]
 
 
-async def get_value_async():
+def sync_getaddrinfo_mock(*_args: Any, **_kwargs: Any) -> AddrInfo:
     return RET_VALUE
 
 
-TEST_HOST_NAME = 'fake.host.name'
+async def async_getaddrinfo_mock(*_args: Any, **_kwargs: Any) -> AddrInfo:
+    return RET_VALUE
 
 
-@patch('socket.getaddrinfo', return_value=RET_VALUE)
-def test_sync_resolver_1(_):
-    resolver = SyncResolver()
-    family, host = resolver.resolve(host=TEST_HOST_NAME)
-    assert family == RET_FAMILY
-    assert host == RET_HOST
+TEST_HOST_NAME = "fake.host.name"
 
 
-@patch('socket.getaddrinfo', return_value=[])
-def test_sync_resolver_2(_):
-    with pytest.raises(OSError):
+def test_sync_resolver_1() -> None:
+
+    with patch_sync_getaddrinfo(new=sync_getaddrinfo_mock):
         resolver = SyncResolver()
-        resolver.resolve(host=TEST_HOST_NAME)
+        family, host = resolver.resolve(host=TEST_HOST_NAME)
+        assert family == RET_FAMILY
+        assert host == RET_HOST
+
+
+def test_sync_resolver_2() -> None:
+    with patch_sync_getaddrinfo(new=lambda *_, **__: []):  # noqa: SIM117
+        with pytest.raises(OSError):  # noqa: PT012
+            resolver = SyncResolver()
+            resolver.resolve(host=TEST_HOST_NAME)
 
 
 @pytest.mark.asyncio
-async def test_asyncio_resolver():
-    loop = MagicMock()
-    loop.getaddrinfo = MagicMock()
-    loop.getaddrinfo.return_value = get_value_async()
-    resolver = AsyncioResolver(loop)
-    family, host = await resolver.resolve(host=TEST_HOST_NAME)
-    assert family == RET_FAMILY
-    assert host == RET_HOST
+async def test_asyncio_resolver() -> None:
+    async def getaddrinfo(*_args: Any, **_kwargs: Any) -> AddrInfo:
+        return RET_VALUE
+
+    loop = asyncio.get_event_loop()
+    with patch_asyncio_getaddrinfo(loop=loop, new=getaddrinfo):
+        resolver = AsyncioResolver(loop)
+        family, host = await resolver.resolve(host=TEST_HOST_NAME)
+        assert family == RET_FAMILY
+        assert host == RET_HOST
 
 
 @pytest.mark.trio
-async def test_trio_resolver():
-    pytest.importorskip('trio')
+async def test_trio_resolver() -> None:
+    pytest.importorskip("trio")
     from python_socks.async_.trio._resolver import Resolver as TrioResolver
 
-    getaddrinfo = MagicMock()
-    getaddrinfo.return_value = get_value_async()
-    # with patch('trio.socket.getaddrinfo', return_value=get_value_async()):
-    with patch('trio.socket.getaddrinfo', new=getaddrinfo):
+    with patch("trio.socket.getaddrinfo", new=async_getaddrinfo_mock):
         resolver = TrioResolver()
         family, host = await resolver.resolve(host=TEST_HOST_NAME)
         assert family == RET_FAMILY
@@ -67,13 +73,11 @@ async def test_trio_resolver():
 
 
 @pytest.mark.anyio
-async def test_anyio_resolver():
-    pytest.importorskip('anyio')
+async def test_anyio_resolver() -> None:
+    pytest.importorskip("anyio")
     from python_socks.async_.anyio._resolver import Resolver as AnyioResolver
 
-    getaddrinfo = MagicMock()
-    getaddrinfo.return_value = get_value_async()
-    with patch('anyio.getaddrinfo', new=getaddrinfo):
+    with patch("anyio.getaddrinfo", new=async_getaddrinfo_mock):
         resolver = AnyioResolver()
         family, host = await resolver.resolve(host=TEST_HOST_NAME)
         assert family == RET_FAMILY

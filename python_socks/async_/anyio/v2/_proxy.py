@@ -1,18 +1,18 @@
+from __future__ import annotations
+
 import ssl
-from typing import Any, Optional
+from typing import Any
 
 import anyio
 
+from ...._connectors.factory_async import create_connector
+from ...._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from ...._helpers import parse_proxy_url
+from ...._protocols.errors import ReplyError
+from ...._types import ProxyType
+from .._resolver import Resolver
 from ._connect import connect_tcp
 from ._stream import AnyioSocketStream
-from .._resolver import Resolver
-from ...._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
-
-from ...._types import ProxyType
-from ...._helpers import parse_proxy_url
-
-from ...._protocols.errors import ReplyError
-from ...._connectors.factory_async import create_connector
 
 DEFAULT_TIMEOUT = 60
 
@@ -23,12 +23,12 @@ class AnyioProxy:
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        rdns: Optional[bool] = None,
-        proxy_ssl: Optional[ssl.SSLContext] = None,
-        forward: Optional['AnyioProxy'] = None,
-    ):
+        username: str | None = None,
+        password: str | None = None,
+        rdns: bool | None = None,  # noqa: FBT001
+        proxy_ssl: ssl.SSLContext | None = None,
+        forward: AnyioProxy | None = None,
+    ) -> None:
         self._proxy_type = proxy_type
         self._proxy_host = host
         self._proxy_port = port
@@ -45,14 +45,14 @@ class AnyioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: Optional[ssl.SSLContext] = None,
-        timeout: Optional[float] = None,
+        dest_ssl: ssl.SSLContext | None = None,
+        timeout: float | None = None,
         **kwargs: Any,
     ) -> AnyioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        local_host = kwargs.get('local_host')
+        local_host = kwargs.get("local_host")
         try:
             with anyio.fail_after(timeout):
                 return await self._connect(
@@ -62,14 +62,14 @@ class AnyioProxy:
                     local_host=local_host,
                 )
         except TimeoutError as e:
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e
 
     async def _connect(
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: Optional[ssl.SSLContext] = None,
-        local_host: Optional[str] = None,
+        dest_ssl: ssl.SSLContext | None = None,
+        local_host: str | None = None,
     ) -> AnyioSocketStream:
         if self._forward is None:
             try:
@@ -117,7 +117,7 @@ class AnyioProxy:
                 )
         except ReplyError as e:
             await stream.close()
-            raise ProxyError(e, error_code=e.error_code)
+            raise ProxyError(e, error_code=e.error_code) from e
         except BaseException:
             with anyio.CancelScope(shield=True):
                 await stream.close()
@@ -126,10 +126,12 @@ class AnyioProxy:
         return stream
 
     @classmethod
-    def create(cls, *args, **kwargs):  # for backward compatibility
+    def create(
+        cls, *args: Any, **kwargs: Any
+    ) -> AnyioProxy:  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, **kwargs) -> 'AnyioProxy':
+    def from_url(cls, url: str, **kwargs: Any) -> AnyioProxy:
         url_args = parse_proxy_url(url)
         return cls(*url_args, **kwargs)

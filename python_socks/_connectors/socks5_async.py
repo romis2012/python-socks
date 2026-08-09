@@ -1,21 +1,21 @@
+from __future__ import annotations
+
 import socket
-from typing import Optional
 
-from .._abc import AsyncSocketStream, AsyncResolver
-from .abc import AsyncConnector
-
-from .._protocols import socks5
+from .._abc import AsyncResolver, AsyncSocketStream
 from .._helpers import is_ip_address
+from .._protocols import socks5
+from .abc import AsyncConnector
 
 
 class Socks5AsyncConnector(AsyncConnector):
     def __init__(
         self,
-        username: Optional[str],
-        password: Optional[str],
-        rdns: Optional[bool],
+        username: str | None,
+        password: str | None,
+        rdns: bool | None,  # noqa: FBT001
         resolver: AsyncResolver,
-    ):
+    ) -> None:
         if rdns is None:
             rdns = True
 
@@ -41,11 +41,14 @@ class Socks5AsyncConnector(AsyncConnector):
         await stream.write_all(data)
 
         data = await stream.read_exact(socks5.AuthMethodReply.SIZE)
-        reply: socks5.AuthMethodReply = conn.receive(data)
+        reply: socks5.AuthMethodReply = conn.receive(data)  # type:ignore[assignment]
 
         # Authenticate
         if reply.method == socks5.AuthMethod.USERNAME_PASSWORD:
-            request = socks5.AuthRequest(
+            assert self._username is not None
+            assert self._password is not None
+
+            request = socks5.AuthRequest(  # type:ignore[assignment]
                 username=self._username,
                 password=self._password,
             )
@@ -53,11 +56,11 @@ class Socks5AsyncConnector(AsyncConnector):
             await stream.write_all(data)
 
             data = await stream.read_exact(socks5.AuthReply.SIZE)
-            _: socks5.AuthReply = conn.receive(data)
+            _: socks5.AuthReply = conn.receive(data)  # type:ignore[assignment]
 
         # Connect
         if not is_ip_address(host) and not self._rdns:
-            _, host = await self._resolver.resolve(
+            _family, host = await self._resolver.resolve(
                 host,
                 family=socket.AF_UNSPEC,
             )
@@ -67,8 +70,8 @@ class Socks5AsyncConnector(AsyncConnector):
         await stream.write_all(data)
 
         data = await self._read_reply(stream)
-        reply: socks5.ConnectReply = conn.receive(data)
-        return reply
+        reply: socks5.ConnectReply = conn.receive(data)  # type:ignore[assignment]
+        return reply  # type:ignore[return-value]
 
     # noinspection PyMethodMayBeStatic
     async def _read_reply(self, stream: AsyncSocketStream) -> bytes:

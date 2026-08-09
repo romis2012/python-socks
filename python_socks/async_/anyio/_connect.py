@@ -1,4 +1,5 @@
-from typing import Optional
+from __future__ import annotations
+
 import anyio
 import anyio.abc
 
@@ -6,7 +7,7 @@ import anyio.abc
 async def connect_tcp(
     host: str,
     port: int,
-    local_host: Optional[str] = None,
+    local_host: str | None = None,
 ) -> anyio.abc.SocketStream:
 
     return await anyio.connect_tcp(

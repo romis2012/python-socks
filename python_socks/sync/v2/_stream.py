@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import socket
 import ssl
 from typing import Union
 
-from ._ssl_transport import SSLTransport
-
-from ..._errors import ProxyError
 from ... import _abc as abc
+from ..._errors import ProxyError
+from ._ssl_transport import SSLTransport
 
 DEFAULT_RECEIVE_SIZE = 65536
 
@@ -13,27 +14,31 @@ SocketType = Union[socket.socket, ssl.SSLSocket, SSLTransport]
 
 
 class SyncSocketStream(abc.SyncSocketStream):
-    _socket: SocketType
-
-    def __init__(self, sock: SocketType):
+    def __init__(self, sock: SocketType) -> None:
         self._socket = sock
 
-    def write_all(self, data):
+    def write_all(self, data: bytes) -> None:
         self._socket.sendall(data)
 
-    def read(self, max_bytes=DEFAULT_RECEIVE_SIZE):
+    def read(self, max_bytes: int = DEFAULT_RECEIVE_SIZE) -> bytes:
         return self._socket.recv(max_bytes)
 
-    def read_exact(self, n):
+    def read_exact(self, n: int) -> bytes:
         data = bytearray()
         while len(data) < n:
             packet = self._socket.recv(n - len(data))
             if not packet:  # pragma: no cover
-                raise ProxyError('Connection closed unexpectedly')
+                raise ProxyError("Connection closed unexpectedly")
             data += packet
-        return data
+        return data  # type:ignore[return-value]
 
-    def start_tls(self, hostname: str, ssl_context: ssl.SSLContext) -> 'SyncSocketStream':
+    def start_tls(
+        self,
+        hostname: str,
+        ssl_context: ssl.SSLContext,
+    ) -> SyncSocketStream:
+        ssl_socket: ssl.SSLSocket | SSLTransport
+
         if isinstance(self._socket, (ssl.SSLSocket, SSLTransport)):
             ssl_socket = SSLTransport(
                 self._socket,
@@ -48,7 +53,7 @@ class SyncSocketStream(abc.SyncSocketStream):
 
         return SyncSocketStream(ssl_socket)
 
-    def close(self):
+    def close(self) -> None:
         self._socket.close()
 
     @property

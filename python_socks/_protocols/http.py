@@ -1,86 +1,82 @@
-import sys
-from dataclasses import dataclass
+from __future__ import annotations
+
 import base64
 import binascii
-from collections import namedtuple
-from typing import Optional
+import sys
+from dataclasses import dataclass
 
-from .._version import __title__, __version__
 from .._helpers import is_ipv6_address
-
+from .._version import __title__, __version__
 from .errors import ReplyError
 
-DEFAULT_USER_AGENT = 'Python/{0[0]}.{0[1]} {1}/{2}'.format(
-    sys.version_info,
-    __title__,
-    __version__,
+DEFAULT_USER_AGENT = (
+    f"Python/{sys.version_info[0]}.{sys.version_info[1]} {__title__}/{__version__}"
 )
+CRLF = "\r\n"
 
-CRLF = '\r\n'
 
+@dataclass
+class BasicAuth:
+    login: str
+    password: str
+    encoding: str = "latin1"
 
-class BasicAuth(namedtuple('BasicAuth', ['login', 'password', 'encoding'])):
-    """Http basic authentication helper."""
+    def __post_init__(self) -> None:
+        if self.login is None:
+            raise ValueError("None is not allowed as login value")
 
-    def __new__(cls, login: str, password: str = '', encoding: str = 'latin1') -> 'BasicAuth':
-        if login is None:
-            raise ValueError('None is not allowed as login value')
+        if self.password is None:
+            raise ValueError("None is not allowed as password value")
 
-        if password is None:
-            raise ValueError('None is not allowed as password value')
-
-        if ':' in login:
+        if ":" in self.login:
             raise ValueError('A ":" is not allowed in login (RFC 1945#section-11.1)')
 
-        # noinspection PyTypeChecker,PyArgumentList
-        return super().__new__(cls, login, password, encoding)
-
     @classmethod
-    def decode(cls, auth_header: str, encoding: str = 'latin1') -> 'BasicAuth':
+    def decode(cls, auth_header: str, encoding: str = "latin1") -> BasicAuth:
         """Create a BasicAuth object from an Authorization HTTP header."""
         try:
-            auth_type, encoded_credentials = auth_header.split(' ', 1)
+            auth_type, encoded_credentials = auth_header.split(" ", 1)
         except ValueError:
-            raise ValueError('Could not parse authorization header.')
+            raise ValueError("Could not parse authorization header.")  # noqa: B904
 
-        if auth_type.lower() != 'basic':
-            raise ValueError('Unknown authorization method %s' % auth_type)
+        if auth_type.lower() != "basic":
+            raise ValueError(f"Unknown authorization method {auth_type}")
 
         try:
-            decoded = base64.b64decode(encoded_credentials.encode('ascii'), validate=True).decode(
-                encoding
-            )
+            decoded = base64.b64decode(
+                encoded_credentials.encode("ascii"),
+                validate=True,
+            ).decode(encoding)
         except binascii.Error:
-            raise ValueError('Invalid base64 encoding.')
+            raise ValueError("Invalid base64 encoding.")  # noqa: B904
 
         try:
             # RFC 2617 HTTP Authentication
             # https://www.ietf.org/rfc/rfc2617.txt
             # the colon must be present, but the username and password may be
             # otherwise blank.
-            username, password = decoded.split(':', 1)
+            username, password = decoded.split(":", 1)
         except ValueError:
-            raise ValueError('Invalid credentials.')
+            raise ValueError("Invalid credentials.")  # noqa: B904
 
-        # noinspection PyTypeChecker
-        return cls(username, password, encoding=encoding)
+        return cls(login=username, password=password, encoding=encoding)
 
     def encode(self) -> str:
         """Encode credentials."""
-        creds = ('%s:%s' % (self.login, self.password)).encode(self.encoding)
-        return 'Basic %s' % base64.b64encode(creds).decode(self.encoding)
+        creds = f"{self.login}:{self.password}".encode(self.encoding)
+        return f"Basic {base64.b64encode(creds).decode(self.encoding)}"
 
 
 class _Buffer:
-    def __init__(self, encoding: str = 'utf-8'):
+    def __init__(self, encoding: str = "utf-8") -> None:
         self._encoding = encoding
         self._buffer = bytearray()
 
-    def append_line(self, line: str = ""):
+    def append_line(self, line: str = "") -> None:
         if line:
             self._buffer.extend(line.encode(self._encoding))
 
-        self._buffer.extend(CRLF.encode('ascii'))
+        self._buffer.extend(CRLF.encode("ascii"))
 
     def dumps(self) -> bytes:
         return bytes(self._buffer)
@@ -90,8 +86,8 @@ class _Buffer:
 class ConnectRequest:
     host: str
     port: int
-    username: Optional[str]
-    password: Optional[str]
+    username: str | None
+    password: str | None
 
     def dumps(self) -> bytes:
         buff = _Buffer()
@@ -103,14 +99,14 @@ class ConnectRequest:
         # with no port — proxies disagree, and several misroute the
         # unbracketed form (typically returning `200 Connection
         # established` against a connection that was never actually made).
-        host = f'[{self.host}]' if is_ipv6_address(self.host) else self.host
-        buff.append_line(f'CONNECT {host}:{self.port} HTTP/1.1')
-        buff.append_line(f'Host: {host}:{self.port}')
-        buff.append_line(f'User-Agent: {DEFAULT_USER_AGENT}')
+        host = f"[{self.host}]" if is_ipv6_address(self.host) else self.host
+        buff.append_line(f"CONNECT {host}:{self.port} HTTP/1.1")
+        buff.append_line(f"Host: {host}:{self.port}")
+        buff.append_line(f"User-Agent: {DEFAULT_USER_AGENT}")
 
         if self.username and self.password:
             auth = BasicAuth(self.username, self.password)
-            buff.append_line(f'Proxy-Authorization: {auth.encode()}')
+            buff.append_line(f"Proxy-Authorization: {auth.encode()}")
 
         buff.append_line()
 
@@ -123,33 +119,32 @@ class ConnectReply:
     message: str
 
     @classmethod
-    def loads(cls, data: bytes) -> 'ConnectReply':
+    def loads(cls, data: bytes) -> ConnectReply:
         if not data:
-            raise ReplyError('Invalid proxy response')  # pragma: no cover
+            raise ReplyError("Invalid proxy response")  # pragma: no cover
 
-        line = data.split(CRLF.encode('ascii'), 1)[0]
-        line = line.decode('utf-8', 'surrogateescape')
+        line = data.split(CRLF.encode("ascii"), 1)[0]
+        line = line.decode("utf-8", "surrogateescape")
 
         try:
-            version, code, *reason = line.split()
-        except ValueError:  # pragma: no cover
-            raise ReplyError(f'Invalid status line: {line}')
+            _version, code, *reason = line.split()
+        except ValueError as e:  # pragma: no cover
+            raise ReplyError(f"Invalid status line: {line}") from e
 
         try:
             status_code = int(code)
-        except ValueError:  # pragma: no cover
-            raise ReplyError(f'Invalid status code: {code}')
+        except ValueError as e:  # pragma: no cover
+            raise ReplyError(f"Invalid status code: {code}") from e
 
         status_message = " ".join(reason)
 
-        if status_code != 200:
-            msg = f'{status_code} {status_message}'
+        if status_code != 200:  # noqa: PLR2004
+            msg = f"{status_code} {status_message}"
             raise ReplyError(msg, error_code=status_code)
 
         return cls(status_code=status_code, message=status_message)
 
 
-# noinspection PyMethodMayBeStatic
 class Connection:
     def send(self, request: ConnectRequest) -> bytes:
         return request.dumps()

@@ -1,18 +1,18 @@
+from __future__ import annotations
+
 import ssl
-from typing import Any, Optional
+from typing import Any
 
 import trio
 
+from ...._connectors.factory_async import create_connector
+from ...._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from ...._helpers import parse_proxy_url
+from ...._protocols.errors import ReplyError
+from ...._types import ProxyType
+from .._resolver import Resolver
 from ._connect import connect_tcp
 from ._stream import TrioSocketStream
-from .._resolver import Resolver
-
-from ...._types import ProxyType
-from ...._helpers import parse_proxy_url
-from ...._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
-
-from ...._protocols.errors import ReplyError
-from ...._connectors.factory_async import create_connector
 
 DEFAULT_TIMEOUT = 60
 
@@ -23,12 +23,12 @@ class TrioProxy:
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        rdns: Optional[bool] = None,
-        proxy_ssl: Optional[ssl.SSLContext] = None,
-        forward: Optional['TrioProxy'] = None,
-    ):
+        username: str | None = None,
+        password: str | None = None,
+        rdns: bool | None = None,  # noqa: FBT001
+        proxy_ssl: ssl.SSLContext | None = None,
+        forward: TrioProxy | None = None,
+    ) -> None:
         self._proxy_type = proxy_type
         self._proxy_host = host
         self._proxy_port = port
@@ -45,14 +45,14 @@ class TrioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: Optional[ssl.SSLContext] = None,
-        timeout: Optional[float] = None,
+        dest_ssl: ssl.SSLContext | None = None,
+        timeout: float | None = None,
         **kwargs: Any,
     ) -> TrioSocketStream:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        local_addr = kwargs.get('local_addr')
+        local_addr = kwargs.get("local_addr")
         try:
             with trio.fail_after(timeout):
                 return await self._connect(
@@ -62,14 +62,14 @@ class TrioProxy:
                     local_addr=local_addr,
                 )
         except trio.TooSlowError as e:
-            raise ProxyTimeoutError(f'Proxy connection timed out: {timeout}') from e
+            raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e
 
     async def _connect(
         self,
         dest_host: str,
         dest_port: int,
-        dest_ssl: Optional[ssl.SSLContext] = None,
-        local_addr: Optional[str] = None,
+        dest_ssl: ssl.SSLContext | None = None,
+        local_addr: str | None = None,
     ) -> TrioSocketStream:
         if self._forward is None:
             try:
@@ -117,7 +117,7 @@ class TrioProxy:
                 )
         except ReplyError as e:
             await stream.close()
-            raise ProxyError(e, error_code=e.error_code)
+            raise ProxyError(e, error_code=e.error_code) from e
         except BaseException:  # trio.Cancelled...
             with trio.CancelScope(shield=True):
                 await stream.close()
@@ -126,10 +126,12 @@ class TrioProxy:
         return stream
 
     @classmethod
-    def create(cls, *args, **kwargs):  # for backward compatibility
+    def create(
+        cls, *args: Any, **kwargs: Any
+    ) -> TrioProxy:  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, **kwargs) -> 'TrioProxy':
+    def from_url(cls, url: str, **kwargs: Any) -> TrioProxy:
         url_args = parse_proxy_url(url)
         return cls(*url_args, **kwargs)

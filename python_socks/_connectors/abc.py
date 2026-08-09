@@ -1,4 +1,6 @@
-from .._abc import SyncSocketStream, AsyncSocketStream
+from typing import Any
+
+from .._abc import AsyncSocketStream, SyncSocketStream
 
 
 class SyncConnector:
@@ -7,7 +9,7 @@ class SyncConnector:
         stream: SyncSocketStream,
         host: str,
         port: int,
-    ):
+    ) -> Any:
         raise NotImplementedError
 
 
@@ -17,5 +19,5 @@ class AsyncConnector:
         stream: AsyncSocketStream,
         host: str,
         port: int,
-    ):
+    ) -> Any:
         raise NotImplementedError

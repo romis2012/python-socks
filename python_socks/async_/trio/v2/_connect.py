@@ -1,13 +1,14 @@
-from typing import Optional
+from __future__ import annotations
 
 import trio
+
 from ._stream import TrioSocketStream
 
 
 async def connect_tcp(
     host: str,
     port: int,
-    local_addr: Optional[str] = None,
+    local_addr: str | None = None,
 ) -> TrioSocketStream:
     trio_stream = await trio.open_tcp_stream(
         host=host,

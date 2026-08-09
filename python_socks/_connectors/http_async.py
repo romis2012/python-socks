@@ -1,17 +1,17 @@
-from typing import Optional
-from .._abc import AsyncSocketStream, AsyncResolver
-from .abc import AsyncConnector
+from __future__ import annotations
 
+from .._abc import AsyncResolver, AsyncSocketStream
 from .._protocols import http
+from .abc import AsyncConnector
 
 
 class HttpAsyncConnector(AsyncConnector):
     def __init__(
         self,
-        username: Optional[str],
-        password: Optional[str],
+        username: str | None,
+        password: str | None,
         resolver: AsyncResolver,
-    ):
+    ) -> None:
         self._username = username
         self._password = password
         self._resolver = resolver

@@ -1,18 +1,18 @@
-from typing import Any, Optional
+from __future__ import annotations
+
 import warnings
+from typing import Any
+
 import trio
 
-from ..._types import ProxyType
-from ..._helpers import parse_proxy_url
-from ..._errors import ProxyConnectionError, ProxyTimeoutError, ProxyError
-
-from ._stream import TrioSocketStream
-from ._resolver import Resolver
-from ._connect import connect_tcp
-
-from ..._protocols.errors import ReplyError
 from ..._connectors.factory_async import create_connector
-
+from ..._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from ..._helpers import parse_proxy_url
+from ..._protocols.errors import ReplyError
+from ..._types import ProxyType
+from ._connect import connect_tcp
+from ._resolver import Resolver
+from ._stream import TrioSocketStream
 
 DEFAULT_TIMEOUT = 60
 
@@ -23,10 +23,10 @@ class TrioProxy:
         proxy_type: ProxyType,
         host: str,
         port: int,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        rdns: Optional[bool] = None,
-    ):
+        username: str | None = None,
+        password: str | None = None,
+        rdns: bool | None = None,  # noqa: FBT001
+    ) -> None:
         self._proxy_type = proxy_type
         self._proxy_host = host
         self._proxy_port = port
@@ -40,13 +40,13 @@ class TrioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         **kwargs: Any,
     ) -> trio.socket.SocketType:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        _socket = kwargs.get('_socket')
+        _socket = kwargs.get("_socket")
         if _socket is not None:
             warnings.warn(
                 "The '_socket' argument is deprecated and will be removed in the future",
@@ -54,7 +54,7 @@ class TrioProxy:
                 stacklevel=2,
             )
 
-        local_addr = kwargs.get('local_addr')
+        local_addr = kwargs.get("local_addr")
         try:
             with trio.fail_after(timeout):
                 return await self._connect(
@@ -64,14 +64,14 @@ class TrioProxy:
                     local_addr=local_addr,
                 )
         except trio.TooSlowError as e:
-            raise ProxyTimeoutError('Proxy connection timed out: {}'.format(timeout)) from e
+            raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e
 
     async def _connect(
         self,
         dest_host: str,
         dest_port: int,
-        _socket=None,
-        local_addr=None,
+        _socket: trio.socket.SocketType | None = None,
+        local_addr: tuple[str, int] | None = None,
     ) -> trio.socket.SocketType:
         if _socket is None:
             try:
@@ -81,10 +81,9 @@ class TrioProxy:
                     local_addr=local_addr,
                 )
             except OSError as e:
-                msg = 'Could not connect to proxy {}:{} [{}]'.format(
-                    self._proxy_host,
-                    self._proxy_port,
-                    e.strerror,
+                msg = (
+                    f"Could not connect to proxy "
+                    f"{self._proxy_host}:{self._proxy_port} [{e.strerror}]"
                 )
                 raise ProxyConnectionError(e.errno, msg) from e
 
@@ -107,25 +106,27 @@ class TrioProxy:
 
         except ReplyError as e:
             await stream.close()
-            raise ProxyError(e, error_code=e.error_code)
+            raise ProxyError(e, error_code=e.error_code) from e
         except BaseException:  # trio.Cancelled...
             with trio.CancelScope(shield=True):
                 await stream.close()
             raise
 
     @property
-    def proxy_host(self):
+    def proxy_host(self) -> str:
         return self._proxy_host
 
     @property
-    def proxy_port(self):
+    def proxy_port(self) -> int:
         return self._proxy_port
 
     @classmethod
-    def create(cls, *args, **kwargs):  # for backward compatibility
+    def create(
+        cls, *args: Any, **kwargs: Any
+    ) -> TrioProxy:  # for backward compatibility
         return cls(*args, **kwargs)
 
     @classmethod
-    def from_url(cls, url: str, **kwargs) -> 'TrioProxy':
+    def from_url(cls, url: str, **kwargs: Any) -> TrioProxy:
         url_args = parse_proxy_url(url)
         return cls(*url_args, **kwargs)

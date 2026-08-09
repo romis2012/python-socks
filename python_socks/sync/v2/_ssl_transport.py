@@ -1,6 +1,9 @@
+# ruff: noqa: PGH004
+# ruff: noqa
 """
 Copied from urllib3.util.ssltransport
 """
+
 import io
 import socket
 import ssl

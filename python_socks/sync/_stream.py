@@ -1,7 +1,7 @@
 import socket
 
-from .._errors import ProxyError
 from .. import _abc as abc
+from .._errors import ProxyError
 
 DEFAULT_RECEIVE_SIZE = 65536
 
@@ -9,24 +9,24 @@ DEFAULT_RECEIVE_SIZE = 65536
 class SyncSocketStream(abc.SyncSocketStream):
     _socket: socket.socket
 
-    def __init__(self, sock: socket.socket):
+    def __init__(self, sock: socket.socket) -> None:
         self._socket = sock
 
-    def write_all(self, data):
+    def write_all(self, data: bytes) -> None:
         self._socket.sendall(data)
 
-    def read(self, max_bytes=DEFAULT_RECEIVE_SIZE):
+    def read(self, max_bytes: int = DEFAULT_RECEIVE_SIZE) -> bytes:
         return self._socket.recv(max_bytes)
 
-    def read_exact(self, n):
+    def read_exact(self, n: int) -> bytes:
         data = bytearray()
         while len(data) < n:
             packet = self._socket.recv(n - len(data))
             if not packet:  # pragma: no cover
-                raise ProxyError('Connection closed unexpectedly')
+                raise ProxyError("Connection closed unexpectedly")
             data += packet
-        return data
+        return data  # type:ignore[return-value]
 
-    def close(self):
+    def close(self) -> None:
         if self._socket is not None:
             self._socket.close()

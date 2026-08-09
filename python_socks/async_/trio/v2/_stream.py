@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import ssl
 from typing import Union
 
 import trio
 
-from ...._errors import ProxyError
 from .... import _abc as abc
+from ...._errors import ProxyError
 
 DEFAULT_RECEIVE_SIZE = 65536
 
@@ -12,31 +14,29 @@ TrioStreamType = Union[trio.SocketStream, trio.SSLStream]
 
 
 class TrioSocketStream(abc.AsyncSocketStream):
-    _stream: TrioStreamType
-
-    def __init__(self, stream: TrioStreamType):
+    def __init__(self, stream: TrioStreamType) -> None:
         self._stream = stream
 
-    async def write_all(self, data):
+    async def write_all(self, data: bytes) -> None:
         await self._stream.send_all(data)
 
-    async def read(self, max_bytes=DEFAULT_RECEIVE_SIZE):
-        return await self._stream.receive_some(max_bytes)
+    async def read(self, max_bytes: int = DEFAULT_RECEIVE_SIZE) -> bytes:
+        return await self._stream.receive_some(max_bytes)  # type:ignore[return-value]
 
-    async def read_exact(self, n):
+    async def read_exact(self, n: int) -> bytes:
         data = bytearray()
         while len(data) < n:
             packet = await self._stream.receive_some(n - len(data))
             if not packet:  # pragma: no cover
-                raise ProxyError('Connection closed unexpectedly')
+                raise ProxyError("Connection closed unexpectedly")
             data += packet
-        return data
+        return data  # type:ignore[return-value]
 
     async def start_tls(
         self,
         hostname: str,
         ssl_context: ssl.SSLContext,
-    ) -> 'TrioSocketStream':
+    ) -> TrioSocketStream:
         ssl_stream = trio.SSLStream(
             self._stream,
             ssl_context=ssl_context,
@@ -47,7 +47,7 @@ class TrioSocketStream(abc.AsyncSocketStream):
         await ssl_stream.do_handshake()
         return TrioSocketStream(ssl_stream)
 
-    async def close(self):
+    async def close(self) -> None:
         await self._stream.aclose()
 
     @property

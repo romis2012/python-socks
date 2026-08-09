@@ -1,17 +1,23 @@
-from typing import Iterable
+from __future__ import annotations
+
 import warnings
+from collections.abc import Iterable
+from typing import Any
 
 
 class ProxyChain:
-    def __init__(self, proxies: Iterable):
+    def __init__(self, proxies: Iterable[Any]) -> None:
         warnings.warn(
-            'This implementation of ProxyChain is deprecated and will be removed in the future',
+            "This implementation of ProxyChain is deprecated "
+            "and will be removed in the future",
             DeprecationWarning,
             stacklevel=2,
         )
         self._proxies = proxies
 
-    async def connect(self, dest_host, dest_port, timeout=None):
+    async def connect(
+        self, dest_host: str, dest_port: int, timeout: float | None = None
+    ) -> Any:
         curr_socket = None
         proxies = list(self._proxies)
 

@@ -1,12 +1,15 @@
+# ruff:noqa:TRY004
+from __future__ import annotations
+
 import enum
-from functools import singledispatchmethod
 import ipaddress
 import socket
-from typing import Optional, Type, Union
 from dataclasses import dataclass, field
+from functools import singledispatchmethod
+from typing import Union, final
 
-from .errors import ReplyError
 from .._helpers import is_ip_address
+from .errors import ReplyError
 
 RSV = NULL = AUTH_GRANTED = 0x00
 SOCKS_VER = 0x05
@@ -25,13 +28,13 @@ class AddressType(enum.IntEnum):
     IPV6 = 0x04
 
     @classmethod
-    def from_ip_ver(cls, ver: int):
-        if ver == 4:
+    def from_ip_ver(cls, ver: int) -> AddressType:
+        if ver == 4:  # noqa: PLR2004
             return cls.IPV4
-        if ver == 6:
+        if ver == 6:  # noqa: PLR2004
             return cls.IPV6
 
-        raise ValueError('Invalid IP version')
+        raise ValueError("Invalid IP version")
 
 
 class Command(enum.IntEnum):
@@ -53,25 +56,25 @@ class ReplyCode(enum.IntEnum):
 
 
 ReplyMessages = {
-    ReplyCode.SUCCEEDED: 'Request granted',
-    ReplyCode.GENERAL_FAILURE: 'General SOCKS server failure',
-    ReplyCode.CONNECTION_NOT_ALLOWED: 'Connection not allowed by ruleset',
-    ReplyCode.NETWORK_UNREACHABLE: 'Network unreachable',
-    ReplyCode.HOST_UNREACHABLE: 'Host unreachable',
-    ReplyCode.CONNECTION_REFUSED: 'Connection refused by destination host',
-    ReplyCode.TTL_EXPIRED: 'TTL expired',
-    ReplyCode.COMMAND_NOT_SUPPORTED: 'Command not supported or protocol error',
-    ReplyCode.ADDRESS_TYPE_NOT_SUPPORTED: 'Address type not supported',
+    ReplyCode.SUCCEEDED: "Request granted",
+    ReplyCode.GENERAL_FAILURE: "General SOCKS server failure",
+    ReplyCode.CONNECTION_NOT_ALLOWED: "Connection not allowed by ruleset",
+    ReplyCode.NETWORK_UNREACHABLE: "Network unreachable",
+    ReplyCode.HOST_UNREACHABLE: "Host unreachable",
+    ReplyCode.CONNECTION_REFUSED: "Connection refused by destination host",
+    ReplyCode.TTL_EXPIRED: "TTL expired",
+    ReplyCode.COMMAND_NOT_SUPPORTED: "Command not supported or protocol error",
+    ReplyCode.ADDRESS_TYPE_NOT_SUPPORTED: "Address type not supported",
 }
 
 
 @dataclass
 class AuthMethodsRequest:
-    username: Optional[str]
-    password: Optional[str]
+    username: str | None
+    password: str | None
     methods: bytearray = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         methods = bytearray([AuthMethod.ANONYMOUS])
 
         if self.username and self.password:
@@ -90,26 +93,26 @@ class AuthMethodReply:
     ver: int
     method: AuthMethod
 
-    def validate(self, request: AuthMethodsRequest):
+    def validate(self, request: AuthMethodsRequest) -> None:
         if self.method not in request.methods:  # pragma: no cover
-            raise ReplyError(f'Unexpected SOCKS authentication method: {self.method}')
+            raise ReplyError(f"Unexpected SOCKS authentication method: {self.method}")
 
     @classmethod
-    def loads(cls, data: bytes) -> 'AuthMethodReply':
+    def loads(cls, data: bytes) -> AuthMethodReply:
         if len(data) != cls.SIZE:
-            raise ReplyError('Malformed authentication method reply')
+            raise ReplyError("Malformed authentication method reply")
 
         ver = data[0]
         if ver != SOCKS_VER:  # pragma: no cover
-            raise ReplyError(f'Unexpected SOCKS version number: {ver}')
+            raise ReplyError(f"Unexpected SOCKS version number: {ver}")
 
         try:
             method = AuthMethod(data[1])
-        except ValueError:
-            raise ReplyError(f'Invalid authentication method: {data[1]:#02X}')
+        except ValueError as e:
+            raise ReplyError(f"Invalid authentication method: {data[1]:#02X}") from e
 
         if method == AuthMethod.NO_ACCEPTABLE:  # pragma: no cover
-            raise ReplyError('No acceptable authentication methods were offered')
+            raise ReplyError("No acceptable authentication methods were offered")
 
         return cls(ver=ver, method=method)
 
@@ -125,9 +128,9 @@ class AuthRequest:
         data = bytearray()
         data.append(self.VER)
         data.append(len(self.username))
-        data += self.username.encode('ascii')
+        data += self.username.encode("ascii")
         data.append(len(self.password))
-        data += self.password.encode('ascii')
+        data += self.password.encode("ascii")
         return bytes(data)
 
 
@@ -139,17 +142,17 @@ class AuthReply:
     status: int
 
     @classmethod
-    def loads(cls, data: bytes) -> 'AuthReply':
+    def loads(cls, data: bytes) -> AuthReply:
         if len(data) != cls.SIZE:
-            raise ReplyError('Malformed auth reply')
+            raise ReplyError("Malformed auth reply")
 
         ver = data[0]
         if ver != AuthRequest.VER:  # pragma: no cover
-            raise ReplyError('Invalid authentication response')
+            raise ReplyError("Invalid authentication response")
 
         status = data[1]
         if status != AUTH_GRANTED:  # pragma: no cover
-            raise ReplyError('Username and password authentication failure')
+            raise ReplyError("Username and password authentication failure")
 
         return cls(ver=ver, status=status)
 
@@ -165,15 +168,15 @@ class ConnectRequest:
         return bytes(data)
 
     def _build_addr_request(self) -> bytes:
-        port = self.port.to_bytes(2, 'big')
+        port = self.port.to_bytes(2, "big")
 
         if is_ip_address(self.host):
             ip = ipaddress.ip_address(self.host)
             address_type = AddressType.from_ip_ver(ip.version)
             return bytes([address_type]) + ip.packed + port
-        else:
+        else:  # noqa: RET505
             address_type = AddressType.DOMAIN
-            host = self.host.encode('idna')
+            host = self.host.encode("idna")
             return bytes([address_type, len(host)]) + host + port
 
 
@@ -185,43 +188,43 @@ class ConnectReply:
     bound_host: str
     bound_port: int
 
-    def validate(self):
+    def validate(self) -> None:
         pass
 
     @classmethod
-    def loads(cls, data: bytes) -> 'ConnectReply':
+    def loads(cls, data: bytes) -> ConnectReply:  # noqa: C901
         if not data:
-            raise ReplyError('Empty connect reply')
+            raise ReplyError("Empty connect reply")
 
         ver = data[0]
         if ver != SOCKS_VER:  # pragma: no cover
-            raise ReplyError(f'Unexpected SOCKS version number: {ver:#02X}')
+            raise ReplyError(f"Unexpected SOCKS version number: {ver:#02X}")
 
         try:
             reply = ReplyCode(data[1])
-        except IndexError:
-            raise ReplyError('Malformed connect reply')
-        except ValueError:
-            raise ReplyError(f'Invalid reply code: {data[1]:#02X}')
+        except IndexError as e:
+            raise ReplyError("Malformed connect reply") from e
+        except ValueError as e:
+            raise ReplyError(f"Invalid reply code: {data[1]:#02X}") from e
 
         if reply != ReplyCode.SUCCEEDED:  # pragma: no cover
-            msg = ReplyMessages.get(reply, 'Unknown error')  # type: ignore
+            msg = ReplyMessages.get(reply, "Unknown error")
             raise ReplyError(msg, error_code=reply)
 
         try:
             rsv = data[2]
-        except IndexError:
-            raise ReplyError('Malformed connect reply')
+        except IndexError as e:
+            raise ReplyError("Malformed connect reply") from e
 
         if rsv != RSV:  # pragma: no cover
-            raise ReplyError(f'The reserved byte must be {RSV:#02X}')
+            raise ReplyError(f"The reserved byte must be {RSV:#02X}")
 
         try:
             addr_type = data[3]
             bnd_host_data = data[4:-2]
             bnd_port_data = data[-2:]
-        except IndexError:
-            raise ReplyError('Malformed connect reply')
+        except IndexError as e:
+            raise ReplyError("Malformed connect reply") from e
 
         if addr_type == AddressType.IPV4:
             bnd_host = socket.inet_ntop(socket.AF_INET, bnd_host_data)
@@ -231,9 +234,9 @@ class ConnectReply:
             # host_len = bnd_host_data[0]
             bnd_host = bnd_host_data[1:].decode()
         else:  # pragma: no cover
-            raise ReplyError(f'Invalid address type: {addr_type:#02X}')
+            raise ReplyError(f"Invalid address type: {addr_type:#02X}")
 
-        bnd_port = int.from_bytes(bnd_port_data, 'big')
+        bnd_port = int.from_bytes(bnd_port_data, "big")
 
         return cls(
             ver=ver,
@@ -244,35 +247,42 @@ class ConnectReply:
         )
 
 
+@final
 class StateServerWaitingForAuthMethods:
     pass
 
 
+@final
 @dataclass
 class StateClientSentAuthMethods:
     data: AuthMethodsRequest
 
 
+@final
 @dataclass
 class StateServerWaitingForAuth:
     data: AuthMethodReply
 
 
+@final
 @dataclass
 class StateClientAuthenticated:
-    data: Optional[AuthReply] = None
+    data: AuthReply | None = None
 
 
+@final
 @dataclass
 class StateClientSentAuthRequest:
     data: AuthRequest
 
 
+@final
 @dataclass
 class StateClientSentConnectRequest:
     data: ConnectRequest
 
 
+@final
 @dataclass
 class StateServerConnected:
     data: ConnectReply
@@ -302,38 +312,38 @@ ConnectionState = Union[
 
 
 class Connection:
-    def __init__(self):
-        self._state = StateServerWaitingForAuthMethods()
+    def __init__(self) -> None:
+        self._state: ConnectionState = StateServerWaitingForAuthMethods()
 
     @singledispatchmethod
     def send(self, request: Request) -> bytes:
-        raise RuntimeError(f'Invalid request type: {request.__class__}')
+        raise RuntimeError(f"Invalid request type: {request.__class__}")
 
     @send.register
     def _send_auth_methods(self, request: AuthMethodsRequest) -> bytes:
-        if not self._state_is(StateServerWaitingForAuthMethods):
-            raise RuntimeError('Server is not currently waiting for auth methods')
+        if not isinstance(self._state, StateServerWaitingForAuthMethods):
+            raise RuntimeError("Server is not currently waiting for auth methods")
         self._state = StateClientSentAuthMethods(request)
         return request.dumps()
 
     @send.register
     def _send_auth(self, request: AuthRequest) -> bytes:
-        if not self._state_is(StateServerWaitingForAuth):
-            raise RuntimeError('Server is not currently waiting for authentication')
+        if not isinstance(self._state, StateServerWaitingForAuth):
+            raise RuntimeError("Server is not currently waiting for authentication")
         self._state = StateClientSentAuthRequest(request)
         return request.dumps()
 
     @send.register
     def _send_connect(self, request: ConnectRequest) -> bytes:
-        if not self._state_is(StateClientAuthenticated):
-            raise RuntimeError('Client is not authenticated')
+        if not isinstance(self._state, StateClientAuthenticated):
+            raise RuntimeError("Client is not authenticated")
         self._state = StateClientSentConnectRequest(request)
         return request.dumps()
 
     def receive(self, data: bytes) -> Reply:
         reply: Reply
 
-        if self._state_is(StateClientSentAuthMethods):
+        if isinstance(self._state, StateClientSentAuthMethods):
             reply = AuthMethodReply.loads(data)
             reply.validate(self._state.data)
             if reply.method == AuthMethod.USERNAME_PASSWORD:
@@ -342,21 +352,18 @@ class Connection:
                 self._state = StateClientAuthenticated()
             return reply
 
-        if self._state_is(StateClientSentAuthRequest):
+        if isinstance(self._state, StateClientSentAuthRequest):
             reply = AuthReply.loads(data)
             self._state = StateClientAuthenticated(data=reply)
             return reply
 
-        if self._state_is(StateClientSentConnectRequest):
+        if isinstance(self._state, StateClientSentConnectRequest):
             reply = ConnectReply.loads(data)
             self._state = StateServerConnected(data=reply)
             return reply
 
-        raise RuntimeError(f'Invalid connection state: {self._state}')
-
-    def _state_is(self, state_cls: Type[ConnectionState]):
-        return self.state.__class__ is state_cls
+        raise RuntimeError(f"Invalid connection state: {self._state}")
 
     @property
-    def state(self):
+    def state(self) -> ConnectionState:
         return self._state

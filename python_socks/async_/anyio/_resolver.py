@@ -1,11 +1,18 @@
-import anyio
 import socket
 
+import anyio
+
 from ... import _abc as abc
+from ..._types import ResolvedAddress
 
 
 class Resolver(abc.AsyncResolver):
-    async def resolve(self, host, port=0, family=socket.AF_UNSPEC):
+    async def resolve(
+        self,
+        host: str,
+        port: int = 0,
+        family: socket.AddressFamily = socket.AF_UNSPEC,
+    ) -> ResolvedAddress:
         infos = await anyio.getaddrinfo(
             host=host,
             port=port,
@@ -14,7 +21,7 @@ class Resolver(abc.AsyncResolver):
         )
 
         if not infos:  # pragma: no cover
-            raise OSError('Can`t resolve address {}:{} [{}]'.format(host, port, family))
+            raise OSError(f"Can`t resolve address {host}:{port} [{family}]")
 
         infos = sorted(infos, key=lambda info: info[0])
 

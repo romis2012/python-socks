@@ -1,51 +1,47 @@
+from __future__ import annotations
+
+import threading
 import typing
-import time
-from multiprocessing import Process
+from collections.abc import Iterable
+from dataclasses import dataclass
 
-from tests.utils import is_connectable
-from tests.http_app import run_app
+import uvicorn
+
+from tests.http_app import app
 
 
-class HttpServerConfig(typing.NamedTuple):
+@dataclass
+class HttpServerConfig:
     host: str
     port: int
-    certfile: str = None
-    keyfile: str = None
+    ssl_certfile: str | None = None
+    ssl_keyfile: str | None = None
 
-    def to_dict(self):
-        d = {}
-        for key, val in self._asdict().items():
-            if val is not None:
-                d[key] = val
-        return d
+    def to_dict(self) -> dict[str, typing.Any]:
+        return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
 class HttpServer:
-    def __init__(self, config: typing.Iterable[HttpServerConfig]):
+    def __init__(self, config: Iterable[HttpServerConfig]) -> None:
         self.config = config
-        self.workers = []
+        self.servers: list[uvicorn.Server] = []
 
-    def start(self):
+    def start(self) -> None:
         for cfg in self.config:
-            p = Process(target=run_app, kwargs=cfg.to_dict())
-            self.workers.append(p)
+            config = uvicorn.Config(
+                app=app,
+                host=cfg.host,
+                port=cfg.port,
+                ssl_certfile=cfg.ssl_certfile,
+                ssl_keyfile=cfg.ssl_keyfile,
+                log_level="warning",
+            )
+            server = uvicorn.Server(config)
+            self.servers.append(server)
 
-        for p in self.workers:
-            p.start()
+            t = threading.Thread(target=server.run, daemon=True)
+            t.start()
 
-    def terminate(self):
-        for p in self.workers:
-            p.terminate()
-
-    def wait_until_connectable(self, host, port, timeout=10):
-        count = 0
-        while not is_connectable(host=host, port=port):
-            if count >= timeout:
-                self.terminate()
-                raise Exception(
-                    'The http server has not available '
-                    'by (%s, %s) in %d seconds'
-                    % (host, port, timeout))
-            count += 1
-            time.sleep(1)
-        return True
+    def shutdown(self) -> None:
+        for server in self.servers:
+            server.should_exit = True

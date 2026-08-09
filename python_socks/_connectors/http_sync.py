@@ -1,17 +1,17 @@
-from typing import Optional
-from .._abc import SyncSocketStream, SyncResolver
-from .abc import SyncConnector
+from __future__ import annotations
 
+from .._abc import SyncResolver, SyncSocketStream
 from .._protocols import http
+from .abc import SyncConnector
 
 
 class HttpSyncConnector(SyncConnector):
     def __init__(
         self,
-        username: Optional[str],
-        password: Optional[str],
+        username: str | None,
+        password: str | None,
         resolver: SyncResolver,
-    ):
+    ) -> None:
         self._username = username
         self._password = password
         self._resolver = resolver

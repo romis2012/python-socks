@@ -1,15 +1,16 @@
-from typing import Optional, Tuple
+from __future__ import annotations
 
 import trio
 
-from ._resolver import Resolver
 from ..._helpers import is_ipv4_address, is_ipv6_address
+from ..._types import ResolvedAddress
+from ._resolver import Resolver
 
 
 async def connect_tcp(
     host: str,
     port: int,
-    local_addr: Optional[Tuple[str, int]] = None,
+    local_addr: tuple[str, int] | None = None,
 ) -> trio.socket.SocketType:
 
     family, host = await _resolve_host(host)
@@ -26,7 +27,7 @@ async def connect_tcp(
     return sock
 
 
-async def _resolve_host(host):
+async def _resolve_host(host: str) -> ResolvedAddress:
     if is_ipv4_address(host):
         return trio.socket.AF_INET, host
     if is_ipv6_address(host):

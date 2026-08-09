@@ -41,9 +41,27 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-asyncio = ['async-timeout>=4.0; python_version < "3.11"']
-trio = ['trio>=0.24']
-anyio = ['anyio>=3.3.4,<5.0.0']
+asyncio = ['async-timeout>=5.0.1; python_version < "3.11"']
+trio = ['trio>=0.30.0']
+anyio = ['anyio>=4.12.1,<5.0.0']
+
+[dependency-groups]
+dev = [
+    "anyio>=4.12.1,<5.0.0",
+    "async-timeout>=5.0.1 ; python_full_version < '3.11'",
+    "trio>=0.30.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-trio>=0.8.0",
+    "pytest-cov>=7.1.0",
+    "tiny-proxy>=0.3.0",
+    "trustme>=1.2.1",
+    "yarl>=1.22.0",
+    "starlette>=0.49.3",
+    "uvicorn>=0.39.0",
+    "ruff>=0.16.1",
+    "mypy>=1.19.1",
+]
 
 [project.urls]
 homepage = 'https://github.com/romis2012/python-socks'
@@ -55,12 +73,56 @@ version = { attr = 'python_socks.__version__' }
 [tool.setuptools.packages.find]
 include = ['python_socks*']
 
-[tool.black]
-line-length = 99
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-skip-string-normalization = true
-preview = true
-verbose = true
-
 [tool.pytest.ini_options]
-asyncio_mode = 'strict'
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.mypy]
+allow_redefinition = true
+disable_error_code = ["import-untyped", "no-redef"]
+
+[tool.ruff]
+line-length = 89
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",
+    "TD",
+    "CPY001", # missing-copyright-notice (CPY001)
+    "ANN401", # any-type (ANN401)
+    "FA100",  # future-rewritable-type-annotation (FA100)
+    "S101",   # assert (S101)
+    "COM812", # missing-trailing-comma (COM812),
+    "TRY003", # raise-vanilla-args (TRY003)
+    "TRY300", # try-consider-else (TRY300)
+    "EM101",  # raw-string-in-exception (EM101)
+    "EM102",  # f-string-in-exception (EM102)
+    "RET504", # unnecessary-assign (RET504)
+    "ERA001", # commented-out-code (ERA001)
+    "TC001",  # typing-only-first-party-import (TC001)
+    "TC002",  # typing-only-third-party-import (TC002)
+    "TC003",  # typing-only-standard-library-import (TC003)
+    "TID252",  # relative-imports (TID252)
+    "ASYNC109",  # async-function-with-timeout (ASYNC109)
+]
+fixable = ["ALL"]
+unfixable = [
+    "RET505", # superfluous-else-return (RET505)
+]
+[tool.ruff.lint.pylint]
+max-args = 8
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "PLR2004", # magic-value-comparison (PLR2004)
+    "PT011",   # pytest-raises-too-broad (PT011)
+    "C416",    # unnecessary-comprehension (C416)
+    "T201",    # print (T201)
+    "PT007",   # pytest-parametrize-values-wrong-type (PT007)
+    "FBT001",  # boolean-type-hint-positional-argument (FBT001)
+    "E402",  # module-import-not-at-top-of-file (E402)
+    "PLC0415",  # import-outside-top-level (PLC0415)
+]

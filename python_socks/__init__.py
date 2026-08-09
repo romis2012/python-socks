@@ -1,20 +1,18 @@
-from ._version import __version__, __title__
-
-from ._types import ProxyType
-from ._helpers import parse_proxy_url
-
 from ._errors import (
+    ProxyConnectionError,
     ProxyError,
     ProxyTimeoutError,
-    ProxyConnectionError,
 )
+from ._helpers import parse_proxy_url
+from ._types import ProxyType
+from ._version import __title__, __version__
 
 __all__ = (
-    '__title__',
-    '__version__',
-    'ProxyError',
-    'ProxyTimeoutError',
-    'ProxyConnectionError',
-    'ProxyType',
-    'parse_proxy_url',
+    "ProxyConnectionError",
+    "ProxyError",
+    "ProxyTimeoutError",
+    "ProxyType",
+    "__title__",
+    "__version__",
+    "parse_proxy_url",
 )

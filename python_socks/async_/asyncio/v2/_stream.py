@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import ssl
 
@@ -7,37 +9,33 @@ DEFAULT_RECEIVE_SIZE = 65536
 
 
 class AsyncioSocketStream(abc.AsyncSocketStream):
-    _loop: asyncio.AbstractEventLoop
-    _reader: asyncio.StreamReader
-    _writer: asyncio.StreamWriter
-
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
-    ):
+    ) -> None:
         self._loop = loop
         self._reader = reader
         self._writer = writer
 
-    async def write_all(self, data):
+    async def write_all(self, data: bytes) -> None:
         self._writer.write(data)
         await self._writer.drain()
 
-    async def read(self, max_bytes=DEFAULT_RECEIVE_SIZE):
+    async def read(self, max_bytes: int = DEFAULT_RECEIVE_SIZE) -> bytes:
         return await self._reader.read(max_bytes)
 
-    async def read_exact(self, n):
+    async def read_exact(self, n: int) -> bytes:
         return await self._reader.readexactly(n)
 
     async def start_tls(
         self,
         hostname: str,
         ssl_context: ssl.SSLContext,
-        ssl_handshake_timeout=None,
-    ) -> 'AsyncioSocketStream':
-        if hasattr(self._writer, 'start_tls'):  # Python>=3.11
+        ssl_handshake_timeout: float | None = None,
+    ) -> AsyncioSocketStream:
+        if hasattr(self._writer, "start_tls"):  # Python>=3.11
             await self._writer.start_tls(
                 ssl_context,
                 server_hostname=hostname,
@@ -49,7 +47,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         protocol = asyncio.StreamReaderProtocol(reader)
 
         transport: asyncio.Transport = await self._loop.start_tls(
-            self._writer.transport,  # type: ignore
+            self._writer.transport,  # type: ignore[assignment]
             protocol,
             ssl_context,
             server_side=False,
@@ -61,7 +59,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
 
         # Initialize the protocol, so it is made aware of being tied to
         # a TLS connection.
-        # See: https://github.com/encode/httpx/issues/859
+        # See also: https://github.com/encode/httpx/issues/859
         protocol.connection_made(transport)
 
         writer = asyncio.StreamWriter(
@@ -75,17 +73,17 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         # When we return a new SocketStream with new StreamReader/StreamWriter instances
         # we need to keep references to the old StreamReader/StreamWriter so that they
         # are not garbage collected and closed while we're still using them.
-        stream._inner = self  # type: ignore # pylint:disable=W0212,W0201
+        stream._inner = self  # type: ignore[attr-defined]
         return stream
 
-    async def close(self):
+    async def close(self) -> None:
         self._writer.close()
-        self._writer.transport.abort()  # noqa
+        self._writer.transport.abort()
 
     @property
-    def reader(self):
+    def reader(self) -> asyncio.StreamReader:
         return self._reader  # pragma: no cover
 
     @property
-    def writer(self):
+    def writer(self) -> asyncio.StreamWriter:
         return self._writer  # pragma: no cover
