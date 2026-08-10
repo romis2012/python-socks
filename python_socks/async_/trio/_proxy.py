@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
 import trio
@@ -48,14 +47,12 @@ class TrioProxy:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        _socket = kwargs.get("_socket")
         local_addr = kwargs.get("local_addr")
         try:
             with trio.fail_after(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
-                    _socket=_socket,
                     local_addr=local_addr,
                 )
         except trio.TooSlowError as e:
@@ -65,17 +62,9 @@ class TrioProxy:
         self,
         dest_host: str,
         dest_port: int,
-        _socket: trio.socket.SocketType | None = None,
         local_addr: tuple[str, int] | None = None,
     ) -> trio.socket.SocketType:
-        if _socket is not None:
-            warnings.warn(
-                "The '_socket' argument is deprecated and will be removed in the future",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            sock = _socket
-        elif self._forward is not None:
+        if self._forward is not None:
             sock = await self._forward.connect(
                 dest_host=self._proxy_host,
                 dest_port=self._proxy_port,
@@ -119,14 +108,6 @@ class TrioProxy:
             with trio.CancelScope(shield=True):
                 await stream.close()
             raise
-
-    @property
-    def proxy_host(self) -> str:
-        return self._proxy_host
-
-    @property
-    def proxy_port(self) -> int:
-        return self._proxy_port
 
     @classmethod
     def create(

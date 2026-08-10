@@ -9,7 +9,7 @@ from yarl import URL
 
 from python_socks import ProxyConnectionError, ProxyError, ProxyTimeoutError, ProxyType
 from python_socks.async_.asyncio._resolver import Resolver
-from python_socks.async_.asyncio.v2 import Proxy, ProxyChain
+from python_socks.async_.asyncio.v2 import Proxy
 from tests.config import (
     HTTP_PROXY_URL,
     LOGIN,
@@ -227,13 +227,15 @@ async def test_http_proxy(url: str, target_ssl_context: SSLContext) -> None:
 @pytest.mark.parametrize("url", (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.asyncio
 async def test_proxy_chain(url: str, target_ssl_context: SSLContext) -> None:
-    proxy = ProxyChain(
-        [
-            Proxy.from_url(SOCKS5_IPV4_URL),
-            Proxy.from_url(SOCKS4_URL),
-            Proxy.from_url(HTTP_PROXY_URL),
-        ]
-    )
+    proxy_urls = [SOCKS5_IPV4_URL, SOCKS4_URL, HTTP_PROXY_URL]
+    forward = None
+    proxy = None
+    for proxy_url in proxy_urls:
+        proxy = Proxy.from_url(proxy_url, forward=forward)
+        forward = proxy
+
+    assert proxy is not None
+
     status_code = await make_request(
         proxy=proxy,  # type:ignore[arg-type]
         url=url,

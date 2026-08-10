@@ -25,7 +25,7 @@ from tests.config import (
 
 anyio = pytest.importorskip("anyio")
 
-from python_socks.async_.anyio import Proxy, ProxyChain
+from python_socks.async_.anyio import Proxy
 from python_socks.async_.anyio._resolver import Resolver
 from tests.patches import patch_anyio_getaddrinfo
 
@@ -237,24 +237,6 @@ async def test_secure_proxy(
 @pytest.mark.parametrize("url", (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 @pytest.mark.anyio
 async def test_proxy_chain(url: str, target_ssl_context: SSLContext) -> None:
-    proxy = ProxyChain(
-        [
-            Proxy.from_url(SOCKS5_IPV4_URL),
-            Proxy.from_url(SOCKS4_URL),
-            Proxy.from_url(HTTP_PROXY_URL),
-        ]
-    )
-    status_code = await make_request(
-        proxy=proxy,  # type: ignore[arg-type]
-        url=url,
-        ssl_context=target_ssl_context,
-    )
-    assert status_code == 200
-
-
-@pytest.mark.parametrize("url", (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
-@pytest.mark.anyio
-async def test_proxy_chain2(url: str, target_ssl_context: SSLContext) -> None:
     proxy_urls = [SOCKS5_IPV4_URL, SOCKS4_URL, HTTP_PROXY_URL]
     forward = None
     proxy = None

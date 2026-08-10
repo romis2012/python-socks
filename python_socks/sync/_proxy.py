@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import socket
-import warnings
 from typing import Any
 
 from .._connectors.factory_sync import create_connector
@@ -47,15 +46,7 @@ class SyncProxy:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        _socket = kwargs.get("_socket")
-        if _socket is not None:
-            warnings.warn(
-                "The '_socket' argument is deprecated and will be removed in the future",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            sock = _socket
-        elif self._forward is not None:
+        if self._forward is not None:
             sock = self._forward.connect(
                 dest_host=self._proxy_host,
                 dest_port=self._proxy_port,
@@ -103,14 +94,6 @@ class SyncProxy:
         except Exception:
             stream.close()
             raise
-
-    @property
-    def proxy_host(self) -> str:
-        return self._proxy_host
-
-    @property
-    def proxy_port(self) -> int:
-        return self._proxy_port
 
     @classmethod
     def create(

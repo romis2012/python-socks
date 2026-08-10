@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ssl
-import warnings
 from typing import Any
 
 import anyio
@@ -52,19 +51,10 @@ class AnyioProxy:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        _stream = kwargs.get("_stream")
         local_host = kwargs.get("local_host")
         try:
             with anyio.fail_after(timeout):
-                if _stream is not None:
-                    warnings.warn(
-                        "The '_stream' argument is deprecated "
-                        "and will be removed in the future",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                    stream = _stream
-                elif self._forward is not None:
+                if self._forward is not None:
                     stream = await self._forward.connect(
                         dest_host=self._proxy_host,
                         dest_port=self._proxy_port,
@@ -122,14 +112,6 @@ class AnyioProxy:
 
         except TimeoutError as e:
             raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e
-
-    @property
-    def proxy_host(self) -> str:
-        return self._proxy_host
-
-    @property
-    def proxy_port(self) -> int:
-        return self._proxy_port
 
     @classmethod
     def create(

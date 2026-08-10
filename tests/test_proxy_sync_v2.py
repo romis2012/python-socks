@@ -7,7 +7,7 @@ from yarl import URL
 
 from python_socks import ProxyConnectionError, ProxyError, ProxyTimeoutError, ProxyType
 from python_socks.sync._resolver import SyncResolver
-from python_socks.sync.v2 import Proxy, ProxyChain
+from python_socks.sync.v2 import Proxy
 from tests.config import (
     HTTP_PROXY_PORT,
     HTTP_PROXY_URL,
@@ -31,7 +31,7 @@ from tests.patches import patch_sync_getaddrinfo
 
 def make_request(
     *,
-    proxy: Proxy | ProxyChain,
+    proxy: Proxy,
     url: str | URL,
     resolve_host: bool = False,
     timeout: float | None = None,
@@ -224,13 +224,14 @@ def test_http_proxy_with_invalid_credentials() -> None:
 
 @pytest.mark.parametrize("url", (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
 def test_proxy_chain(url: str, target_ssl_context: SSLContext) -> None:
-    proxy = ProxyChain(
-        [
-            Proxy.from_url(SOCKS5_IPV4_URL),
-            Proxy.from_url(SOCKS4_URL),
-            Proxy.from_url(HTTP_PROXY_URL),
-        ]
-    )
+    proxy_urls = [SOCKS5_IPV4_URL, SOCKS4_URL, HTTP_PROXY_URL]
+    forward = None
+    proxy = None
+    for proxy_url in proxy_urls:
+        proxy = Proxy.from_url(proxy_url, forward=forward)
+        forward = proxy
+
+    assert proxy is not None
     status_code = make_request(
         proxy=proxy,
         url=url,
