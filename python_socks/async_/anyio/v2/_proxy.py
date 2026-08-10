@@ -52,14 +52,13 @@ class AnyioProxy:
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
 
-        local_host = kwargs.get("local_host")
         try:
             with anyio.fail_after(timeout):
                 return await self._connect(
                     dest_host=dest_host,
                     dest_port=dest_port,
                     dest_ssl=dest_ssl,
-                    local_host=local_host,
+                    **kwargs,
                 )
         except TimeoutError as e:
             raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e
@@ -69,14 +68,14 @@ class AnyioProxy:
         dest_host: str,
         dest_port: int,
         dest_ssl: ssl.SSLContext | None = None,
-        local_host: str | None = None,
+        **kwargs: Any,
     ) -> AnyioSocketStream:
         if self._forward is None:
             try:
                 stream = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
-                    local_host=local_host,
+                    **kwargs,
                 )
             except OSError as e:
                 raise ProxyConnectionError(
@@ -88,6 +87,7 @@ class AnyioProxy:
             stream = await self._forward.connect(
                 dest_host=self._proxy_host,
                 dest_port=self._proxy_port,
+                **kwargs,
             )
 
         try:

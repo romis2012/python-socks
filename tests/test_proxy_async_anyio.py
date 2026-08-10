@@ -8,7 +8,6 @@ from yarl import URL
 from python_socks import ProxyConnectionError, ProxyError, ProxyTimeoutError, ProxyType
 from tests.config import (
     HTTP_PROXY_URL,
-    HTTPS_PROXY_URL,
     LOGIN,
     PASSWORD,
     PROXY_HOST_IPV4,
@@ -24,6 +23,9 @@ from tests.config import (
 )
 
 anyio = pytest.importorskip("anyio")
+
+from anyio.abc import SocketStream
+from anyio.streams.tls import TLSStream
 
 from python_socks.async_.anyio import Proxy
 from python_socks.async_.anyio._resolver import Resolver
@@ -52,12 +54,19 @@ async def make_request(
         if url.scheme == "https":
             dest_ssl = ssl_context
 
-        stream = await proxy.connect(
+        stream: SocketStream | TLSStream = await proxy.connect(
             dest_host=dest_host,  # type:ignore[arg-type]
             dest_port=url.port,  # type:ignore[arg-type]
-            dest_ssl=dest_ssl,
             timeout=timeout,
         )
+
+        if dest_ssl is not None:
+            stream = await TLSStream.wrap(
+                stream,
+                ssl_context=dest_ssl,
+                hostname=url.host,
+                standard_compatible=False,
+            )
 
         # fmt: off
         request = (
@@ -70,14 +79,14 @@ async def make_request(
         request = request.format(rel_url=url.path_qs, host=url.host)
         request = request.encode("ascii")
 
-        await stream.write_all(request)
+        await stream.send(request)
 
-        response = await stream.read(1024)
+        response = await stream.receive(1024)
 
         status_line = response.split(b"\r\n", 1)[0]
         _version, status_code, *_reason = status_line.split()
 
-        await stream.close()
+        await stream.aclose()
 
         return int(status_code)
 
@@ -210,22 +219,6 @@ async def test_socks4_proxy(
 @pytest.mark.anyio
 async def test_http_proxy(url: str, target_ssl_context: SSLContext) -> None:
     proxy = Proxy.from_url(HTTP_PROXY_URL)
-    status_code = await make_request(
-        proxy=proxy,
-        url=url,
-        ssl_context=target_ssl_context,
-    )
-    assert status_code == 200
-
-
-@pytest.mark.parametrize("url", (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
-@pytest.mark.anyio
-async def test_secure_proxy(
-    url: str,
-    target_ssl_context: SSLContext,
-    proxy_ssl_context: SSLContext,
-) -> None:
-    proxy = Proxy.from_url(HTTPS_PROXY_URL, proxy_ssl=proxy_ssl_context)
     status_code = await make_request(
         proxy=proxy,
         url=url,

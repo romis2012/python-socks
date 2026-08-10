@@ -16,9 +16,9 @@ It is used internally by
 
 ## Requirements
 - Python >= 3.9
-- async-timeout >= 4.0 (optional)
-- trio >= 0.24 (optional)
-- anyio >= 3.3.4 (optional)
+- async-timeout >= 5.0 (optional)
+- trio >= 0.30 (optional)
+- anyio >= 4.12 (optional)
 
 ## Installation
 
@@ -50,55 +50,77 @@ We are making secure HTTP GET request via SOCKS5 proxy
 import ssl
 from python_socks.sync import Proxy
 
-proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
 
-# `connect` returns standard Python socket in blocking mode
-sock = proxy.connect(dest_host='check-host.net', dest_port=443)
+def fetch():
+    proxy = Proxy.from_url("socks5://user:password@127.0.0.1:1080")
 
-sock = ssl.create_default_context().wrap_socket(
-    sock=sock,
-    server_hostname='check-host.net'
-)
+    # `connect` returns standard Python socket in blocking mode
+    sock = proxy.connect(
+        dest_host="check-host.net",
+        dest_port=443,
+    )
 
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
-sock.sendall(request)
-response = sock.recv(4096)
-print(response)
+    sock = ssl.create_default_context().wrap_socket(
+        sock=sock,
+        server_hostname="check-host.net",
+    )
+
+    # fmt: off
+    request = (
+        b"GET /ip HTTP/1.1\r\n"
+        b"Host: check-host.net\r\n"
+        b"Connection: close\r\n\r\n"
+    )
+    # fmt: on
+
+    sock.sendall(request)
+    response = sock.recv(4096)
+    print(response)
+
+
+fetch()
 ```
 
 #### Async (asyncio)
 ```python
-import ssl
 import asyncio
+import ssl
 from python_socks.async_.asyncio import Proxy
 
-proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
 
-# `connect` returns standard Python socket in non-blocking mode 
-# so we can pass it to asyncio.open_connection(...)
-sock = await proxy.connect(dest_host='check-host.net', dest_port=443)
+async def fetch():
+    proxy = Proxy.from_url("socks5://user:password@127.0.0.1:1080")
 
-reader, writer = await asyncio.open_connection(
-    host=None,
-    port=None,
-    sock=sock,
-    ssl=ssl.create_default_context(),
-    server_hostname='check-host.net',
-)
+    # `connect` returns standard Python socket in non-blocking mode
+    # so we can pass it to asyncio.open_connection(...)
+    sock = await proxy.connect(
+        dest_host="check-host.net",
+        dest_port=443,
+    )
 
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
+    reader, writer = await asyncio.open_connection(
+        sock=sock,
+        ssl=ssl.create_default_context(),
+        server_hostname="check-host.net",
+    )
 
-writer.write(request)
-response = await reader.read(-1)
-print(response)
+    # fmt: off
+    request = (
+        b"GET /ip HTTP/1.1\r\n"
+        b"Host: check-host.net\r\n"
+        b"Connection: close\r\n\r\n"
+    )
+    # fmt: on
+
+    writer.write(request)
+    response = await reader.read(-1)
+    print(response)
+
+    writer.close()
+    await writer.wait_closed()
+
+
+asyncio.run(fetch())
 ```
 
 #### Async (trio)
@@ -107,54 +129,81 @@ import ssl
 import trio
 from python_socks.async_.trio import Proxy
 
-proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
 
-# `connect` returns trio socket 
-# so we can pass it to trio.SocketStream
-sock = await proxy.connect(dest_host='check-host.net', dest_port=443)
+async def fetch():
+    proxy = Proxy.from_url("socks5://user:password@127.0.0.1:1080")
 
-stream = trio.SocketStream(sock)
+    # `connect` returns trio.socket.SocketType
+    # so we can pass it to trio.SocketStream
+    sock = await proxy.connect(
+        dest_host="check-host.net",
+        dest_port=443,
+    )
+    stream = trio.SocketStream(sock)
+    stream = trio.SSLStream(
+        stream,
+        ssl_context=ssl.create_default_context(),
+        server_hostname="check-host.net",
+    )
+    await stream.do_handshake()
 
-stream = trio.SSLStream(
-    stream, ssl.create_default_context(),
-    server_hostname='check-host.net'
-)
-await stream.do_handshake()
+    # fmt: off
+    request = (
+        b"GET /ip HTTP/1.1\r\n"
+        b"Host: check-host.net\r\n"
+        b"Connection: close\r\n\r\n"
+    )
+    # fmt: on
 
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
+    await stream.send_all(request)
+    response = await stream.receive_some(4096)
+    print(response)
 
-await stream.send_all(request)
-response = await stream.receive_some(4096)
-print(response)
+    await stream.aclose()
+
+
+trio.run(fetch)
 ```
 
 #### Async (anyio)
 ```python
 import ssl
+import anyio
+from anyio.streams.tls import TLSStream
 from python_socks.async_.anyio import Proxy
 
-proxy = Proxy.from_url('socks5://user:password@127.0.0.1:1080')
 
-# `connect` returns AnyioSocketStream
-stream = await proxy.connect(
-    dest_host='check-host.net',
-    dest_port=443,
-    dest_ssl=ssl.create_default_context(),
-)
+async def fetch():
+    proxy = Proxy.from_url("socks5://user:password@127.0.0.1:1080")
 
-request = (
-    b'GET /ip HTTP/1.1\r\n'
-    b'Host: check-host.net\r\n'
-    b'Connection: close\r\n\r\n'
-)
+    # `connect` returns anyio.abc.SocketStream
+    # we can use it directly
+    stream = await proxy.connect(
+        dest_host="check-host.net",
+        dest_port=443,
+    )
+    stream = await TLSStream.wrap(
+        stream,
+        ssl_context=ssl.create_default_context(),
+        hostname="check-host.net",
+    )
 
-await stream.write_all(request)
-response = await stream.read()
-print(response)
+    # fmt: off
+    request = (
+        b"GET /ip HTTP/1.1\r\n"
+        b"Host: check-host.net\r\n"
+        b"Connection: close\r\n\r\n"
+    )
+    # fmt: on
+
+    await stream.send(request)
+    response = await stream.receive(4096)
+    print(response)
+
+    await stream.aclose()
+
+
+anyio.run(fetch)
 ```
 
 ## More complex example
@@ -169,8 +218,8 @@ from python_socks.sync import Proxy
 
 class ProxyHTTPConnection(HTTPConnection):
     def __init__(self, *args, **kwargs):
-        socks_options = kwargs.pop('_socks_options')
-        self._proxy_url = socks_options['proxy_url']
+        socks_options = kwargs.pop("_socks_options")
+        self._proxy_url = socks_options["proxy_url"]
         super().__init__(*args, **kwargs)
 
     def _new_conn(self):
@@ -178,7 +227,7 @@ class ProxyHTTPConnection(HTTPConnection):
         return proxy.connect(
             dest_host=self.host,
             dest_port=self.port,
-            timeout=self.timeout
+            timeout=self.timeout,
         )
 
 
@@ -195,22 +244,28 @@ class ProxyHTTPSConnectionPool(HTTPSConnectionPool):
 
 
 class ProxyPoolManager(PoolManager):
-    def __init__(self, proxy_url, timeout=5, num_pools=10, headers=None,
-                 **connection_pool_kw):
+    def __init__(
+        self,
+        proxy_url,
+        timeout=5,
+        num_pools=10,
+        headers=None,
+        **connection_pool_kw,
+    ):
 
-        connection_pool_kw['_socks_options'] = {'proxy_url': proxy_url}
-        connection_pool_kw['timeout'] = timeout
+        connection_pool_kw["_socks_options"] = {"proxy_url": proxy_url}
+        connection_pool_kw["timeout"] = timeout
 
         super().__init__(num_pools, headers, **connection_pool_kw)
 
         self.pool_classes_by_scheme = {
-            'http': ProxyHTTPConnectionPool,
-            'https': ProxyHTTPSConnectionPool,
+            "http": ProxyHTTPConnectionPool,
+            "https": ProxyHTTPSConnectionPool,
         }
 
 
 ### and how to use it
-manager = ProxyPoolManager('socks5://user:password@127.0.0.1:1080')
-response = manager.request('GET', 'https://check-host.net/ip')
+manager = ProxyPoolManager("socks5://user:password@127.0.0.1:1080")
+response = manager.request("GET", "https://check-host.net/ip")
 print(response.data)
 ```
