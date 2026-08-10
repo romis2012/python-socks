@@ -217,3 +217,20 @@ def test_proxy_chain(
         ssl_context=target_ssl_context,
     )
     assert status_code == 200
+
+
+@pytest.mark.parametrize("url", (TEST_URL_IPV4, TEST_URL_IPV4_HTTPS))
+def test_proxy_chain2(
+    url: str,
+    target_ssl_context: SSLContext,
+) -> None:
+    proxy1 = Proxy.from_url(SOCKS5_IPV4_URL)
+    proxy2 = Proxy.from_url(SOCKS4_URL, forward=proxy1)
+    proxy3 = Proxy.from_url(HTTP_PROXY_URL, forward=proxy2)
+
+    status_code = make_request(
+        proxy=proxy3,
+        url=url,
+        ssl_context=target_ssl_context,
+    )
+    assert status_code == 200

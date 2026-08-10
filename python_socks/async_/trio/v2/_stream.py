@@ -29,7 +29,7 @@ class TrioSocketStream(abc.AsyncSocketStream):
             packet = await self._stream.receive_some(n - len(data))
             if not packet:  # pragma: no cover
                 raise ProxyError("Connection closed unexpectedly")
-            data += packet
+            data.extend(packet)
         return data  # type:ignore[return-value]
 
     async def start_tls(

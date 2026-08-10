@@ -32,6 +32,7 @@ class AsyncioProxy:
         username: str | None = None,
         password: str | None = None,
         rdns: bool | None = None,  # noqa: FBT001
+        forward: AsyncioProxy | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if loop is None:
@@ -45,6 +46,7 @@ class AsyncioProxy:
         self._password = password
         self._username = username
         self._rdns = rdns
+        self._forward = forward
 
         self._resolver = Resolver(loop=loop)
 
@@ -59,14 +61,8 @@ class AsyncioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _socket = kwargs.get("_socket")
-        if _socket is not None:
-            warnings.warn(
-                "The '_socket' argument is deprecated and will be removed in the future",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         local_addr = kwargs.get("local_addr")
+
         try:
             async with async_timeout.timeout(timeout):
                 return await self._connect(
@@ -85,9 +81,22 @@ class AsyncioProxy:
         _socket: socket.socket | None = None,
         local_addr: tuple[str, int] | None = None,
     ) -> socket.socket:
-        if _socket is None:
+        if _socket is not None:
+            warnings.warn(
+                "The '_socket' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            sock = _socket
+        elif self._forward is not None:
+            sock = await self._forward.connect(
+                dest_host=self._proxy_host,
+                dest_port=self._proxy_port,
+                timeout=None,
+            )
+        else:
             try:
-                _socket = await connect_tcp(
+                sock = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     loop=self._loop,
@@ -100,7 +109,7 @@ class AsyncioProxy:
                 )
                 raise ProxyConnectionError(e.errno, msg) from e
 
-        stream = AsyncioSocketStream(sock=_socket, loop=self._loop)
+        stream = AsyncioSocketStream(sock=sock, loop=self._loop)
 
         try:
             connector = create_connector(
@@ -116,7 +125,7 @@ class AsyncioProxy:
                 port=dest_port,
             )
 
-            return _socket
+            return sock
         except ReplyError as e:
             await stream.close()
             raise ProxyError(e, error_code=e.error_code) from e

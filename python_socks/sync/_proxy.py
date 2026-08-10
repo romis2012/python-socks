@@ -25,6 +25,7 @@ class SyncProxy:
         username: str | None = None,
         password: str | None = None,
         rdns: bool | None = None,  # noqa: FBT001
+        forward: SyncProxy | None = None,
     ) -> None:
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -32,6 +33,7 @@ class SyncProxy:
         self._password = password
         self._username = username
         self._rdns = rdns
+        self._forward = forward
 
         self._resolver = SyncResolver()
 
@@ -52,11 +54,17 @@ class SyncProxy:
                 DeprecationWarning,
                 stacklevel=2,
             )
-
-        if _socket is None:
+            sock = _socket
+        elif self._forward is not None:
+            sock = self._forward.connect(
+                dest_host=self._proxy_host,
+                dest_port=self._proxy_port,
+                timeout=timeout,
+            )
+        else:
             local_addr = kwargs.get("local_addr")
             try:
-                _socket = connect_tcp(
+                sock = connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     timeout=timeout,
@@ -69,7 +77,7 @@ class SyncProxy:
                 )
                 raise ProxyConnectionError(e.errno, msg) from e
 
-        stream = SyncSocketStream(_socket)
+        stream = SyncSocketStream(sock)
 
         try:
             connector = create_connector(
@@ -85,7 +93,7 @@ class SyncProxy:
                 port=dest_port,
             )
 
-            return _socket
+            return sock
         except socket.timeout as e:
             stream.close()
             raise ProxyTimeoutError(f"Proxy connection timed out: {timeout}") from e

@@ -28,6 +28,7 @@ class AnyioProxy:
         password: str | None = None,
         rdns: bool | None = None,  # noqa: FBT001
         proxy_ssl: ssl.SSLContext | None = None,
+        forward: AnyioProxy | None = None,
     ) -> None:
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -35,6 +36,7 @@ class AnyioProxy:
         self._password = password
         self._username = username
         self._rdns = rdns
+        self._forward = forward
 
         self._proxy_ssl = proxy_ssl
         self._resolver = Resolver()
@@ -51,19 +53,26 @@ class AnyioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _stream = kwargs.get("_stream")
-        if _stream is not None:
-            warnings.warn(
-                "The '_stream' argument is deprecated and will be removed in the future",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         local_host = kwargs.get("local_host")
         try:
             with anyio.fail_after(timeout):
-                if _stream is None:
+                if _stream is not None:
+                    warnings.warn(
+                        "The '_stream' argument is deprecated "
+                        "and will be removed in the future",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                    stream = _stream
+                elif self._forward is not None:
+                    stream = await self._forward.connect(
+                        dest_host=self._proxy_host,
+                        dest_port=self._proxy_port,
+                        timeout=None,
+                    )
+                else:
                     try:
-                        _stream = AnyioSocketStream(
+                        stream = AnyioSocketStream(
                             await connect_tcp(
                                 host=self._proxy_host,
                                 port=self._proxy_port,
@@ -76,8 +85,6 @@ class AnyioProxy:
                             f"{self._proxy_host}:{self._proxy_port} [{e.strerror}]"
                         )
                         raise ProxyConnectionError(e.errno, msg) from e
-
-                stream = _stream
 
                 try:
                     if self._proxy_ssl is not None:

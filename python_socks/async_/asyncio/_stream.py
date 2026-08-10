@@ -24,7 +24,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
             packet = await self._loop.sock_recv(self._socket, n - len(data))
             if not packet:  # pragma: no cover
                 raise ProxyError("Connection closed unexpectedly")
-            data += packet
+            data.extend(packet)
         return data  # type:ignore[return-value]
 
     async def close(self) -> None:

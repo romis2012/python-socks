@@ -24,7 +24,7 @@ class SyncSocketStream(abc.SyncSocketStream):
             packet = self._socket.recv(n - len(data))
             if not packet:  # pragma: no cover
                 raise ProxyError("Connection closed unexpectedly")
-            data += packet
+            data.extend(packet)
         return data  # type:ignore[return-value]
 
     def close(self) -> None:

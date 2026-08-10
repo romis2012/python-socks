@@ -26,6 +26,7 @@ class TrioProxy:
         username: str | None = None,
         password: str | None = None,
         rdns: bool | None = None,  # noqa: FBT001
+        forward: TrioProxy | None = None,
     ) -> None:
         self._proxy_type = proxy_type
         self._proxy_host = host
@@ -33,6 +34,7 @@ class TrioProxy:
         self._password = password
         self._username = username
         self._rdns = rdns
+        self._forward = forward
 
         self._resolver = Resolver()
 
@@ -47,13 +49,6 @@ class TrioProxy:
             timeout = DEFAULT_TIMEOUT
 
         _socket = kwargs.get("_socket")
-        if _socket is not None:
-            warnings.warn(
-                "The '_socket' argument is deprecated and will be removed in the future",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         local_addr = kwargs.get("local_addr")
         try:
             with trio.fail_after(timeout):
@@ -73,9 +68,22 @@ class TrioProxy:
         _socket: trio.socket.SocketType | None = None,
         local_addr: tuple[str, int] | None = None,
     ) -> trio.socket.SocketType:
-        if _socket is None:
+        if _socket is not None:
+            warnings.warn(
+                "The '_socket' argument is deprecated and will be removed in the future",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            sock = _socket
+        elif self._forward is not None:
+            sock = await self._forward.connect(
+                dest_host=self._proxy_host,
+                dest_port=self._proxy_port,
+                timeout=None,
+            )
+        else:
             try:
-                _socket = await connect_tcp(
+                sock = await connect_tcp(
                     host=self._proxy_host,
                     port=self._proxy_port,
                     local_addr=local_addr,
@@ -87,7 +95,7 @@ class TrioProxy:
                 )
                 raise ProxyConnectionError(e.errno, msg) from e
 
-        stream = TrioSocketStream(sock=_socket)
+        stream = TrioSocketStream(sock=sock)
 
         try:
             connector = create_connector(
@@ -102,7 +110,7 @@ class TrioProxy:
                 host=dest_host,
                 port=dest_port,
             )
-            return _socket
+            return sock
 
         except ReplyError as e:
             await stream.close()
