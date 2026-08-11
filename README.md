@@ -269,3 +269,41 @@ manager = ProxyPoolManager("socks5://user:password@127.0.0.1:1080")
 response = manager.request("GET", "https://check-host.net/ip")
 print(response.data)
 ```
+
+## Proxy Chaining (sync example — same for asyncio, trio, anyio)
+
+```python
+import ssl
+from python_socks.sync import Proxy
+
+
+def fetch():
+    proxy1 = Proxy.from_url("socks5://user:password@127.0.0.1:1080")
+    proxy2 = Proxy.from_url("socks4://127.0.0.1:1081", forward=proxy1)
+    proxy3 = Proxy.from_url("http://user:password@127.0.0.1:1082", forward=proxy2)
+
+    sock = proxy3.connect(
+        dest_host="check-host.net",
+        dest_port=443,
+    )
+
+    sock = ssl.create_default_context().wrap_socket(
+        sock=sock,
+        server_hostname="check-host.net",
+    )
+
+    # fmt: off
+    request = (
+        b"GET /ip HTTP/1.1\r\n"
+        b"Host: check-host.net\r\n"
+        b"Connection: close\r\n\r\n"
+    )
+    # fmt: on
+
+    sock.sendall(request)
+    response = sock.recv(4096)
+    print(response)
+
+
+fetch()
+```
