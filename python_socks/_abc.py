@@ -26,13 +26,13 @@ class AsyncResolver:
 
 
 class SyncSocketStream:
-    def write_all(self, data: bytes) -> None:
+    def write(self, data: bytes) -> None:
         raise NotImplementedError
 
     def read(self, max_bytes: int = ...) -> bytes:
         raise NotImplementedError
 
-    def read_exact(self, n: int) -> bytes:
+    def read_exactly(self, n: int) -> bytes:
         raise NotImplementedError
 
     def close(self) -> None:
@@ -40,13 +40,13 @@ class SyncSocketStream:
 
 
 class AsyncSocketStream:
-    async def write_all(self, data: bytes) -> None:
+    async def write(self, data: bytes) -> None:
         raise NotImplementedError
 
     async def read(self, max_bytes: int = ...) -> bytes:
         raise NotImplementedError
 
-    async def read_exact(self, n: int) -> bytes:
+    async def read_exactly(self, n: int) -> bytes:
         raise NotImplementedError
 
     async def close(self) -> None:

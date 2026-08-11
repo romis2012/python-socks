@@ -6,7 +6,12 @@ from typing import Any
 import trio
 
 from ...._connectors.factory_async import create_connector
-from ...._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from ...._errors import (
+    IncompleteReadError,
+    ProxyConnectionError,
+    ProxyError,
+    ProxyTimeoutError,
+)
 from ...._helpers import parse_proxy_url
 from ...._protocols.errors import ReplyError
 from ...._types import ProxyType
@@ -118,6 +123,9 @@ class TrioProxy:
         except ReplyError as e:
             await stream.close()
             raise ProxyError(e, error_code=e.error_code) from e
+        except IncompleteReadError as e:
+            await stream.close()
+            raise ProxyError(e) from e
         except BaseException:  # trio.Cancelled...
             with trio.CancelScope(shield=True):
                 await stream.close()

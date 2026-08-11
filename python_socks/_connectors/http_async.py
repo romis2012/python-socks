@@ -31,7 +31,7 @@ class HttpAsyncConnector(AsyncConnector):
             password=self._password,
         )
         data = conn.send(request)
-        await stream.write_all(data)
+        await stream.write(data)
 
         data = await stream.read()
         reply: http.ConnectReply = conn.receive(data)

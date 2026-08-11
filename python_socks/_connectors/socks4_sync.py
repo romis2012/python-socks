@@ -38,8 +38,8 @@ class Socks4SyncConnector(SyncConnector):
 
         request = socks4.ConnectRequest(host=host, port=port, user_id=self._user_id)
         data = conn.send(request)
-        stream.write_all(data)
+        stream.write(data)
 
-        data = stream.read_exact(socks4.ConnectReply.SIZE)
+        data = stream.read_exactly(socks4.ConnectReply.SIZE)
         reply: socks4.ConnectReply = conn.receive(data)
         return reply

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from asyncio import IncompleteReadError
 from typing import Any
 
 import anyio
 import anyio.abc
 
 from ..._connectors.factory_async import create_connector
-from ..._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from ..._errors import (
+    ProxyConnectionError,
+    ProxyError,
+    ProxyTimeoutError,
+)
 from ..._helpers import parse_proxy_url
 from ..._protocols.errors import ReplyError
 from ..._types import ProxyType
@@ -105,8 +110,12 @@ class AnyioProxy:
         except ReplyError as e:
             await stream.close()
             raise ProxyError(e, error_code=e.error_code) from e
-        except BaseException:
+        except IncompleteReadError as e:
             await stream.close()
+            raise ProxyError(e) from e
+        except BaseException:
+            with anyio.CancelScope(shield=True):
+                await stream.close()
             raise
 
     @classmethod

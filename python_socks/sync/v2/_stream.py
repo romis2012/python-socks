@@ -5,7 +5,7 @@ import ssl
 from typing import Union
 
 from ... import _abc as abc
-from ..._errors import ProxyError
+from ..._errors import IncompleteReadError
 from ._ssl_transport import SSLTransport
 
 DEFAULT_RECEIVE_SIZE = 65536
@@ -17,18 +17,18 @@ class SyncSocketStream(abc.SyncSocketStream):
     def __init__(self, sock: SocketType) -> None:
         self._socket = sock
 
-    def write_all(self, data: bytes) -> None:
+    def write(self, data: bytes) -> None:
         self._socket.sendall(data)
 
     def read(self, max_bytes: int = DEFAULT_RECEIVE_SIZE) -> bytes:
         return self._socket.recv(max_bytes)
 
-    def read_exact(self, n: int) -> bytes:
+    def read_exactly(self, n: int) -> bytes:
         data = bytearray()
         while len(data) < n:
             packet = self._socket.recv(n - len(data))
             if not packet:  # pragma: no cover
-                raise ProxyError("Connection closed unexpectedly")
+                raise IncompleteReadError("Connection closed unexpectedly")
             data.extend(packet)
         return data  # type:ignore[return-value]
 

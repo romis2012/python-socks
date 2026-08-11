@@ -19,14 +19,14 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         self._reader = reader
         self._writer = writer
 
-    async def write_all(self, data: bytes) -> None:
+    async def write(self, data: bytes) -> None:
         self._writer.write(data)
         await self._writer.drain()
 
     async def read(self, max_bytes: int = DEFAULT_RECEIVE_SIZE) -> bytes:
         return await self._reader.read(max_bytes)
 
-    async def read_exact(self, n: int) -> bytes:
+    async def read_exactly(self, n: int) -> bytes:
         return await self._reader.readexactly(n)
 
     async def start_tls(

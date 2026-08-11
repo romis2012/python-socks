@@ -67,7 +67,7 @@ def make_request(
         request = request.format(rel_url=url.path_qs, host=url.host)
         request = request.encode("ascii")
 
-        stream.write_all(request)
+        stream.write(request)
 
         response = stream.read(1024)
 

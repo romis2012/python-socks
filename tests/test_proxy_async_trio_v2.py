@@ -68,7 +68,7 @@ async def make_request(
         request = request.format(rel_url=url.path_qs, host=url.host)
         request = request.encode("ascii")
 
-        await stream.write_all(request)
+        await stream.write(request)
 
         response = await stream.read(1024)
 

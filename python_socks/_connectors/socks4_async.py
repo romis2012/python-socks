@@ -38,8 +38,8 @@ class Socks4AsyncConnector(AsyncConnector):
 
         request = socks4.ConnectRequest(host=host, port=port, user_id=self._user_id)
         data = conn.send(request)
-        await stream.write_all(data)
+        await stream.write(data)
 
-        data = await stream.read_exact(socks4.ConnectReply.SIZE)
+        data = await stream.read_exactly(socks4.ConnectReply.SIZE)
         reply: socks4.ConnectReply = conn.receive(data)
         return reply

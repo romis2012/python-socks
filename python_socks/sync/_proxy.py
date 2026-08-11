@@ -4,7 +4,12 @@ import socket
 from typing import Any
 
 from .._connectors.factory_sync import create_connector
-from .._errors import ProxyConnectionError, ProxyError, ProxyTimeoutError
+from .._errors import (
+    IncompleteReadError,
+    ProxyConnectionError,
+    ProxyError,
+    ProxyTimeoutError,
+)
 from .._helpers import parse_proxy_url
 from .._protocols.errors import ReplyError
 from .._types import ProxyType
@@ -91,6 +96,9 @@ class SyncProxy:
         except ReplyError as e:
             stream.close()
             raise ProxyError(e, error_code=e.error_code) from e
+        except IncompleteReadError as e:
+            stream.close()
+            raise ProxyError(e) from e
         except Exception:
             stream.close()
             raise

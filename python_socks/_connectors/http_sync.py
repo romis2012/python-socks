@@ -31,7 +31,7 @@ class HttpSyncConnector(SyncConnector):
             password=self._password,
         )
         data = conn.send(request)
-        stream.write_all(data)
+        stream.write(data)
 
         data = stream.read()
         reply: http.ConnectReply = conn.receive(data)
