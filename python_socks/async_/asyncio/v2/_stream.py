@@ -80,7 +80,7 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         self._writer.close()
         try:
             await self._writer.wait_closed()
-        except OSError:
+        except Exception:  # noqa: BLE001, S110
             pass
         self._writer.transport.abort()
 
