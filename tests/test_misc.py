@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from python_socks._helpers import is_ip_address
@@ -56,3 +58,27 @@ def test_connect_request_does_not_bracket_hostname() -> None:
     raw = req.dumps()
     assert raw.split(b"\r\n", 1)[0] == b"CONNECT example.com:443 HTTP/1.1"
     assert b"Host: example.com:443\r\n" in raw
+
+
+@pytest.mark.parametrize(
+    ("username", "password", "expected"),
+    (
+        ("login", "", b"Basic bG9naW46"),
+        ("login", "password", b"Basic bG9naW46cGFzc3dvcmQ="),
+        ("login", None, None),
+        (None, None, None),
+        ("", "", None),
+    ),
+)
+def test_http_connect_request_authentication(
+    username: str | None, password: str | None, expected: bytes | None
+) -> None:
+    request = ConnectRequest(
+        host="example.com", port=443, username=username, password=password
+    )
+    headers = request.dumps().split(b"\r\n")
+    auth_headers = [line for line in headers if line.startswith(b"Proxy-Authorization:")]
+    if expected is None:
+        assert auth_headers == []
+    else:
+        assert auth_headers == [b"Proxy-Authorization: " + expected]
