@@ -104,7 +104,7 @@ class ConnectRequest:
         buff.append_line(f"Host: {host}:{self.port}")
         buff.append_line(f"User-Agent: {DEFAULT_USER_AGENT}")
 
-        if self.username and self.password:
+        if self.username and self.password is not None:
             auth = BasicAuth(self.username, self.password)
             buff.append_line(f"Proxy-Authorization: {auth.encode()}")
 
