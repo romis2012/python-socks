@@ -16,12 +16,11 @@ async def connect_tcp(
     family, host = await _resolve_host(host)
 
     sock = trio.socket.socket(family=family, type=trio.socket.SOCK_STREAM)
-    if local_addr is not None:  # pragma: no cover
-        await sock.bind(local_addr)
-
     try:
+        if local_addr is not None:
+            await sock.bind(local_addr)
         await sock.connect((host, port))
-    except OSError:
+    except BaseException:
         sock.close()
         raise
     return sock
