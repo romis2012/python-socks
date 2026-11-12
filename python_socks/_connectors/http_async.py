@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .._abc import AsyncResolver, AsyncSocketStream
 from .._protocols import http
+from .._protocols.errors import ReplyError
 from .abc import AsyncConnector
 
 
@@ -33,6 +34,11 @@ class HttpAsyncConnector(AsyncConnector):
         data = conn.send(request)
         await stream.write(data)
 
-        data = await stream.read()
-        reply: http.ConnectReply = conn.receive(data)
+        # Stop exactly at the end of the headers: following bytes belong to the tunnel.
+        response = bytearray()
+        while not response.endswith(b"\r\n\r\n"):
+            if len(response) >= http.MAX_REPLY_SIZE:
+                raise ReplyError("HTTP proxy response headers are too long")
+            response += await stream.read_exactly(1)
+        reply: http.ConnectReply = conn.receive(bytes(response))
         return reply
