@@ -8,7 +8,6 @@ from typing import Any
 
 from ...._connectors.factory_async import create_connector
 from ...._errors import (
-    IncompleteReadError,
     ProxyConnectionError,
     ProxyError,
     ProxyTimeoutError,
@@ -146,7 +145,7 @@ class AsyncioProxy:
         except ReplyError as e:
             await stream.close()
             raise ProxyError(e, error_code=e.error_code) from e
-        except IncompleteReadError as e:
+        except asyncio.IncompleteReadError as e:
             await stream.close()
             raise ProxyError(e) from e
         except (asyncio.CancelledError, Exception):
