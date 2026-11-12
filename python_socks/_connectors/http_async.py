@@ -39,6 +39,9 @@ class HttpAsyncConnector(AsyncConnector):
         while not response.endswith(b"\r\n\r\n"):
             if len(response) >= http.MAX_REPLY_SIZE:
                 raise ReplyError("HTTP proxy response headers are too long")
-            response += await stream.read_exactly(1)
+            chunk = await stream.read(1)
+            if not chunk:
+                raise ReplyError("Invalid proxy response")
+            response += chunk
         reply: http.ConnectReply = conn.receive(bytes(response))
         return reply
