@@ -4,6 +4,7 @@ import asyncio
 import ssl
 
 from .... import _abc as abc
+from ...._errors import IncompleteReadError
 
 DEFAULT_RECEIVE_SIZE = 65536
 
@@ -27,7 +28,10 @@ class AsyncioSocketStream(abc.AsyncSocketStream):
         return await self._reader.read(max_bytes)
 
     async def read_exactly(self, n: int) -> bytes:
-        return await self._reader.readexactly(n)
+        try:
+            return await self._reader.readexactly(n)
+        except asyncio.IncompleteReadError as e:
+            raise IncompleteReadError("Connection closed unexpectedly") from e
 
     async def start_tls(
         self,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from unittest.mock import AsyncMock, Mock, patch
 
 import anyio
@@ -107,7 +108,9 @@ def test_asyncio_v2_truncated_reply(reply: bytes) -> None:
             try:
                 with pytest.raises(ProxyError) as exc_info:
                     await proxy.connect("127.0.0.1", 80)
-                assert isinstance(exc_info.value.__cause__, asyncio.IncompleteReadError)
+                cause = exc_info.value.__cause__
+                assert isinstance(cause, IncompleteReadError)
+                assert isinstance(cause.__cause__, asyncio.IncompleteReadError)
                 assert exc_info.value.error_code is None
                 writer.close.assert_called_once()
                 writer.wait_closed.assert_awaited_once()
@@ -237,7 +240,8 @@ def test_asyncio_v2_cancellation_closes_stream() -> None:
                 task.cancel("test cancellation")
                 with pytest.raises(asyncio.CancelledError) as exc_info:
                     await task
-                assert exc_info.value.args == ("test cancellation",)
+                if sys.version_info >= (3, 11):
+                    assert exc_info.value.args == ("test cancellation",)
             finally:
                 if not task.done():
                     task.cancel()
