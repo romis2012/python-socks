@@ -13,6 +13,7 @@ DEFAULT_USER_AGENT = (
     f"Python/{sys.version_info[0]}.{sys.version_info[1]} {__title__}/{__version__}"
 )
 CRLF = "\r\n"
+MAX_REPLY_SIZE = 65536
 
 
 @dataclass
