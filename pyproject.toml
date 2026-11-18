@@ -82,6 +82,14 @@ asyncio_default_test_loop_scope = "session"
 allow_redefinition = true
 disable_error_code = ["import-untyped", "no-redef"]
 
+
+[tool.ty.rules]
+all = "warn"
+missing-override-decorator = "ignore"
+unsupported-dynamic-base = "ignore"
+unsound-return = "ignore"
+truthiness-test-of-none-union = "ignore"
+
 [tool.ruff]
 line-length = 89
 indent-width = 4
