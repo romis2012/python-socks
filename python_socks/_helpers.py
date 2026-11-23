@@ -80,5 +80,7 @@ def parse_proxy_url(
         username, password = (unquote(parsed.username), unquote(parsed.password))  # type:ignore[arg-type]
     except (AttributeError, TypeError):
         username, password = "", ""
+        if proxy_type == ProxyType.SOCKS4 and parsed.username is not None:
+            username = unquote(parsed.username)
 
     return proxy_type, host, port, username, password
