@@ -170,7 +170,7 @@ class SSLTransport:
             return self._ssl_io_loop(self.sslobj.read, len, buffer)
         except ssl.SSLError as e:
             if e.errno == ssl.SSL_ERROR_EOF and self.suppress_ragged_eofs:
-                return 0  # eof, return 0.
+                return 0 if buffer is not None else b""
             else:
                 raise
 
