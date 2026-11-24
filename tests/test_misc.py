@@ -61,6 +61,26 @@ def test_connect_request_does_not_bracket_hostname() -> None:
 
 
 @pytest.mark.parametrize(
+    ("host", "expected"),
+    (
+        ("bücher.example", "xn--bcher-kva.example"),
+        ("täst.example", "xn--tst-qla.example"),
+        ("예시.한국", "xn--vv4b11d.xn--3e0b707e"),
+        ("例え.テスト", "xn--r8jz45g.xn--zckzah"),
+        ("bücher.example.", "xn--bcher-kva.example."),
+        ("xn--bcher-kva.example", "xn--bcher-kva.example"),
+        ("EXAMPLE.org", "EXAMPLE.org"),
+        ("example.org.", "example.org."),
+    ),
+)
+def test_http_connect_request_idna_hostname(host: str, expected: str) -> None:
+    request = ConnectRequest(host=host, port=443, username=None, password=None)
+    lines = request.dumps().split(b"\r\n")
+    assert lines[0] == f"CONNECT {expected}:443 HTTP/1.1".encode("ascii")
+    assert f"Host: {expected}:443".encode("ascii") in lines
+
+
+@pytest.mark.parametrize(
     ("username", "password", "expected"),
     (
         ("login", "", b"Basic bG9naW46"),

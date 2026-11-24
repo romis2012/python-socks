@@ -99,7 +99,11 @@ class ConnectRequest:
         # with no port — proxies disagree, and several misroute the
         # unbracketed form (typically returning `200 Connection
         # established` against a connection that was never actually made).
-        host = f"[{self.host}]" if is_ipv6_address(self.host) else self.host
+        host = (
+            f"[{self.host}]"
+            if is_ipv6_address(self.host)
+            else self.host.encode("idna").decode("ascii")
+        )
         buff.append_line(f"CONNECT {host}:{self.port} HTTP/1.1")
         buff.append_line(f"Host: {host}:{self.port}")
         buff.append_line(f"User-Agent: {DEFAULT_USER_AGENT}")
